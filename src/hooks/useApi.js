@@ -1,16 +1,16 @@
 import { useState, useCallback } from 'react'
 
-const BASE_URL    = 'https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api'
+const API_BASE    = 'https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api'
 const FACTORY_KEY = 'factory2026'
 
 /**
- * Realiza una petición autenticada a la API.
+ * Realiza una petición autenticada a la API base.
  * @param {string} endpoint  - Ruta relativa, ej: '/users'
  * @param {RequestInit} options - Opciones fetch adicionales
- * @returns {Promise<any>} - JSON de respuesta
+ * @returns {Promise<any>}   - JSON de respuesta
  */
 export async function fetchApi(endpoint = '', options = {}) {
-  const url = `${BASE_URL}${endpoint}`
+  const url = `${API_BASE}${endpoint}`
 
   const headers = {
     'Content-Type':  'application/json',
@@ -18,42 +18,50 @@ export async function fetchApi(endpoint = '', options = {}) {
     ...options.headers
   }
 
-  const response = await fetch(url, {
+  const config = {
     ...options,
     headers
-  })
+  }
+
+  const response = await fetch(url, config)
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }))
-    throw new Error(error.message || `HTTP error ${response.status}`)
+    const errorBody = await response.text()
+    throw new Error(
+      `API Error ${response.status} – ${response.statusText}: ${errorBody}`
+    )
   }
 
   const contentType = response.headers.get('content-type') ?? ''
-  if (contentType.includes('application/json')) {
-    return response.json()
-  }
-
-  return response.text()
+  return contentType.includes('application/json')
+    ? response.json()
+    : response.text()
 }
 
 /**
- * Hook para consumir fetchApi con estados loading / error / data.
+ * Hook React para consumir la API con estado de carga y error.
  * @returns {{ data, loading, error, request }}
+ *
+ * Uso:
+ *   const { data, loading, error, request } = useApi()
+ *   useEffect(() => { request('/endpoint') }, [])
  */
 export function useApi() {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
 
-  const request = useCallback(async (endpoint, options = {}) => {
+  const request = useCallback(async (endpoint = '', options = {}) => {
     setLoading(true)
     setError(null)
+    setData(null)
+
     try {
       const result = await fetchApi(endpoint, options)
       setData(result)
       return result
     } catch (err) {
-      setError(err.message)
+      setError(err.message ?? 'Error desconocido')
       throw err
     } finally {
       setLoading(false)
