@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Building2,
 } from "lucide-react";
 
 const NAV_ITEMS = [];
@@ -12,137 +13,194 @@ export default function Sidebar({ collapsed, onToggle }) {
 
   return (
     <aside
-      style={{ backgroundColor: "#0A0A0F", borderColor: "#1A1A2E" }}
-      className={`
-        relative flex flex-col h-screen border-r transition-all duration-300 ease-in-out
-        ${collapsed ? "w-16" : "w-64"}
-      `}
+      className="flex flex-col h-screen sticky top-0 z-40 transition-all duration-300 ease-in-out"
+      style={{
+        width: collapsed ? "72px" : "240px",
+        background: "#0A0A0F",
+        borderRight: "1px solid rgba(108,99,255,0.15)",
+      }}
     >
-      {/* Toggle Button */}
-      <button
-        onClick={onToggle}
-        style={{ backgroundColor: "#1A1A2E", color: "#6C63FF" }}
-        className="absolute -right-3 top-6 z-10 rounded-full p-1 shadow-lg hover:scale-110 transition-transform duration-200"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? (
-          <ChevronRight size={14} />
-        ) : (
-          <ChevronLeft size={14} />
-        )}
-      </button>
-
-      {/* Logo */}
+      {/* Header / Logo */}
       <div
-        style={{ borderColor: "#1A1A2E" }}
-        className="flex items-center gap-3 px-4 py-5 border-b overflow-hidden"
+        className="flex items-center justify-between px-4 py-5"
+        style={{ borderBottom: "1px solid rgba(108,99,255,0.12)" }}
       >
-        <div
-          style={{ backgroundColor: "#6C63FF" }}
-          className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg"
-        >
-          <Zap size={16} color="#fff" />
+        <div className="flex items-center gap-3 overflow-hidden">
+          {/* Logo icon */}
+          <div
+            className="flex-shrink-0 flex items-center justify-center rounded-lg w-8 h-8"
+            style={{ background: "linear-gradient(135deg,#6C63FF,#00D4AA)" }}
+          >
+            <Zap size={16} color="#fff" strokeWidth={2.5} />
+          </div>
+
+          {/* Brand name */}
+          <span
+            className="font-bold text-base whitespace-nowrap transition-all duration-300"
+            style={{
+              color: "#fff",
+              opacity: collapsed ? 0 : 1,
+              width: collapsed ? 0 : "auto",
+              overflow: "hidden",
+              letterSpacing: "0.02em",
+            }}
+          >
+            Sistema{" "}
+            <span style={{ color: "#6C63FF" }}>t</span>
+          </span>
         </div>
-        <span
-          style={{ color: "#00D4AA" }}
-          className={`font-bold text-lg tracking-wide whitespace-nowrap transition-all duration-300 ${
-            collapsed ? "opacity-0 w-0" : "opacity-100 w-auto"
-          }`}
+
+        {/* Toggle button */}
+        <button
+          onClick={onToggle}
+          className="flex-shrink-0 flex items-center justify-center rounded-md w-7 h-7 transition-colors duration-200"
+          style={{
+            background: "rgba(108,99,255,0.1)",
+            border: "1px solid rgba(108,99,255,0.25)",
+            color: "#6C63FF",
+            cursor: "pointer",
+          }}
+          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
         >
-          Sistema t
-        </span>
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 space-y-1">
-        {NAV_ITEMS.length === 0 && (
-          <p
-            className={`text-xs text-center transition-all duration-300 ${
-              collapsed ? "opacity-0" : "opacity-50"
-            }`}
-            style={{ color: "#6C63FF" }}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-2">
+        {NAV_ITEMS.length === 0 ? (
+          <div
+            className="flex flex-col items-center justify-center gap-2 mt-8 transition-all duration-300"
+            style={{ opacity: collapsed ? 0 : 0.4 }}
           >
-            Sin secciones
-          </p>
-        )}
-
-        {NAV_ITEMS.map((item) => {
-          const isActive = location.pathname === item.path;
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              title={collapsed ? item.label : undefined}
-              style={{
-                backgroundColor: isActive ? "#6C63FF22" : "transparent",
-                color: isActive ? "#6C63FF" : "#a0aec0",
-                borderLeft: isActive
-                  ? "3px solid #6C63FF"
-                  : "3px solid transparent",
-              }}
-              className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-lg
-                transition-all duration-200 ease-in-out
-                hover:bg-opacity-10 group
-                ${collapsed ? "justify-center" : ""}
-              `}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = "#1A1A2E";
-                  e.currentTarget.style.color = "#00D4AA";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.color = "#a0aec0";
-                }
-              }}
+            <span
+              className="text-xs text-center px-2"
+              style={{ color: "#6C63FF" }}
             >
-              <Icon
-                size={18}
-                className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-              />
-              <span
-                className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${
-                  collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"
-                }`}
-              >
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+              Sin ítems de navegación
+            </span>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {NAV_ITEMS.map((item) => {
+              const isActive =
+                location.pathname === item.path ||
+                (item.path !== "/" &&
+                  location.pathname.startsWith(item.path));
+              const Icon = item.icon;
+
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 group relative"
+                    style={{
+                      background: isActive
+                        ? "linear-gradient(90deg,rgba(108,99,255,0.18),rgba(0,212,170,0.08))"
+                        : "transparent",
+                      border: isActive
+                        ? "1px solid rgba(108,99,255,0.3)"
+                        : "1px solid transparent",
+                      color: isActive ? "#6C63FF" : "rgba(255,255,255,0.6)",
+                      textDecoration: "none",
+                    }}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    {/* Active indicator bar */}
+                    {isActive && (
+                      <span
+                        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full"
+                        style={{
+                          width: "3px",
+                          height: "60%",
+                          background:
+                            "linear-gradient(180deg,#6C63FF,#00D4AA)",
+                        }}
+                      />
+                    )}
+
+                    {/* Icon */}
+                    <span className="flex-shrink-0 ml-1">
+                      {Icon && (
+                        <Icon
+                          size={18}
+                          strokeWidth={isActive ? 2.2 : 1.8}
+                          style={{
+                            color: isActive ? "#6C63FF" : "rgba(255,255,255,0.5)",
+                            transition: "color 0.2s",
+                          }}
+                        />
+                      )}
+                    </span>
+
+                    {/* Label */}
+                    <span
+                      className="text-sm font-medium whitespace-nowrap transition-all duration-300"
+                      style={{
+                        opacity: collapsed ? 0 : 1,
+                        width: collapsed ? 0 : "auto",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+
+                    {/* Tooltip when collapsed */}
+                    {collapsed && (
+                      <span
+                        className="absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50"
+                        style={{
+                          background: "#1A1A2E",
+                          color: "#fff",
+                          border: "1px solid rgba(108,99,255,0.3)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </nav>
 
-      {/* Company Name Footer */}
+      {/* Footer / Company name */}
       <div
-        style={{ borderColor: "#1A1A2E" }}
-        className="border-t px-4 py-4 overflow-hidden"
+        className="px-4 py-4 flex items-center gap-3 overflow-hidden"
+        style={{ borderTop: "1px solid rgba(108,99,255,0.12)" }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            style={{ backgroundColor: "#1A1A2E", borderColor: "#6C63FF33" }}
-            className="flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center"
+        <div
+          className="flex-shrink-0 flex items-center justify-center rounded-lg w-8 h-8"
+          style={{
+            background: "rgba(26,26,46,1)",
+            border: "1px solid rgba(108,99,255,0.2)",
+          }}
+        >
+          <Building2 size={15} style={{ color: "#00D4AA" }} strokeWidth={1.8} />
+        </div>
+
+        <div
+          className="flex flex-col transition-all duration-300 overflow-hidden"
+          style={{
+            opacity: collapsed ? 0 : 1,
+            width: collapsed ? 0 : "auto",
+          }}
+        >
+          <span
+            className="text-xs font-semibold whitespace-nowrap"
+            style={{ color: "#fff" }}
           >
-            <span style={{ color: "#00D4AA" }} className="text-xs font-bold">
-              t
-            </span>
-          </div>
-          <div
-            className={`flex flex-col transition-all duration-300 ${
-              collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"
-            }`}
+            t
+          </span>
+          <span
+            className="text-xs whitespace-nowrap"
+            style={{ color: "rgba(255,255,255,0.35)" }}
           >
-            <span className="text-xs font-semibold text-white whitespace-nowrap">
-              t
-            </span>
-            <span className="text-xs whitespace-nowrap" style={{ color: "#6C63FF" }}>
-              Empresa
-            </span>
-          </div>
+            Empresa
+          </span>
         </div>
       </div>
     </aside>
