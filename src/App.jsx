@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Menu,
   X,
-  Zap,
 } from "lucide-react";
 
 import Dashboard from "./pages/Dashboard";
@@ -32,149 +31,181 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
+      {/* Logo / Header */}
       <div
         className={`flex items-center gap-3 px-4 py-5 border-b border-white/10 ${
-          collapsed ? "justify-center" : ""
+          collapsed ? "justify-center" : "justify-between"
         }`}
       >
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center shadow-lg shadow-[#6C63FF]/30">
-          <Zap size={16} className="text-white" />
-        </div>
         {!collapsed && (
-          <div>
-            <span className="text-white font-bold text-base tracking-wide">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}>
+              <span className="text-white font-bold text-sm">T</span>
+            </div>
+            <span className="text-white font-semibold text-base tracking-wide">
               Sistema t
-            </span>
-            <span className="block text-[#00D4AA] text-[10px] font-medium tracking-widest uppercase">
-              t
             </span>
           </div>
         )}
+        {collapsed && (
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}>
+            <span className="text-white font-bold text-sm">T</span>
+          </div>
+        )}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
+        >
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      {/* Nav Items */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
-          const active = location.pathname === path;
+          const isActive = location.pathname === path;
           return (
             <button
               key={path}
               onClick={() => handleNav(path)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative ${
-                active
-                  ? "bg-gradient-to-r from-[#6C63FF]/20 to-[#00D4AA]/10 text-white border border-[#6C63FF]/30 shadow-lg shadow-[#6C63FF]/10"
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                isActive
+                  ? "text-white"
                   : "text-white/50 hover:text-white hover:bg-white/5"
               } ${collapsed ? "justify-center" : ""}`}
+              style={
+                isActive
+                  ? {
+                      background:
+                        "linear-gradient(135deg, rgba(108,99,255,0.25), rgba(0,212,170,0.15))",
+                      boxShadow: "inset 0 0 0 1px rgba(108,99,255,0.4)",
+                    }
+                  : {}
+              }
+              title={collapsed ? label : undefined}
             >
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gradient-to-b from-[#6C63FF] to-[#00D4AA] rounded-full" />
-              )}
               <Icon
                 size={18}
-                className={`flex-shrink-0 transition-colors ${
-                  active ? "text-[#6C63FF]" : "group-hover:text-[#6C63FF]"
+                className={`flex-shrink-0 transition-colors duration-200 ${
+                  isActive ? "text-[#6C63FF]" : "text-white/40 group-hover:text-white/70"
                 }`}
               />
               {!collapsed && (
-                <span className="text-sm font-medium truncate">{label}</span>
+                <span className="truncate">{label}</span>
               )}
-              {collapsed && (
-                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#1A1A2E] border border-white/10 rounded-lg text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 shadow-xl">
-                  {label}
-                </div>
+              {isActive && !collapsed && (
+                <span
+                  className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: "#00D4AA" }}
+                />
               )}
             </button>
           );
         })}
       </nav>
 
-      {/* Collapse toggle - desktop */}
-      <div className="hidden md:flex px-3 pb-4">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all duration-200 ${
-            collapsed ? "justify-center" : ""
-          }`}
-        >
-          {collapsed ? (
-            <ChevronRight size={16} />
-          ) : (
-            <>
-              <ChevronLeft size={16} />
-              <span className="text-xs font-medium">Colapsar</span>
-            </>
-          )}
-        </button>
+      {/* Footer */}
+      <div className="px-3 py-4 border-t border-white/10">
+        {!collapsed ? (
+          <div className="px-3 py-2 rounded-xl bg-white/5">
+            <p className="text-white/30 text-xs">API conectada</p>
+            <p className="text-[#00D4AA] text-xs font-medium mt-0.5 truncate">
+              urusverify.com
+            </p>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <div
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: "#00D4AA" }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside
-        className={`hidden md:flex flex-col flex-shrink-0 h-screen bg-[#1A1A2E] border-r border-white/10 transition-all duration-300 ease-in-out ${
-          collapsed ? "w-16" : "w-60"
-        }`}
-        style={{ position: "sticky", top: 0 }}
-      >
-        <SidebarContent />
-      </aside>
-
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Mobile Drawer */}
-      <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-[#1A1A2E] border-r border-white/10 z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+      <div
+        className={`fixed top-0 left-0 h-full z-50 lg:hidden transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{ width: "260px", backgroundColor: "#1A1A2E", borderRight: "1px solid rgba(255,255,255,0.08)" }}
       >
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
-        >
-          <X size={20} />
-        </button>
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="text-white/50 hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
         <SidebarContent />
-      </aside>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div
+        className={`hidden lg:flex flex-col flex-shrink-0 h-full transition-all duration-300 ease-in-out`}
+        style={{
+          width: collapsed ? "72px" : "240px",
+          backgroundColor: "#1A1A2E",
+          borderRight: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <SidebarContent />
+      </div>
     </>
   );
 }
 
-function Topbar({ setMobileOpen }) {
+function TopBar({ setMobileOpen }) {
   const location = useLocation();
-  const current = NAV_ITEMS.find((i) => i.path === location.pathname);
+
+  const currentItem = NAV_ITEMS.find((item) => item.pathname === location.pathname) ||
+    NAV_ITEMS.find((item) => location.pathname.startsWith(item.path));
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-4 px-4 md:px-6 h-14 bg-[#0A0A0F]/80 backdrop-blur-md border-b border-white/10">
+    <header
+      className="flex items-center gap-4 px-4 sm:px-6 py-4 border-b border-white/10 flex-shrink-0"
+      style={{ backgroundColor: "rgba(26,26,46,0.5)", backdropFilter: "blur(12px)" }}
+    >
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden text-white/60 hover:text-white transition-colors"
+        className="lg:hidden text-white/50 hover:text-white transition-colors"
       >
         <Menu size={22} />
       </button>
-      <div className="flex items-center gap-2">
-        {current && (
-          <>
-            <current.icon size={16} className="text-[#6C63FF]" />
-            <span className="text-white font-semibold text-sm">
-              {current.label}
-            </span>
-          </>
-        )}
+      <div className="flex-1">
+        <h1 className="text-white font-semibold text-lg">
+          {currentItem?.label || "Sistema t"}
+        </h1>
+        <p className="text-white/30 text-xs mt-0.5">
+          {new Date().toLocaleDateString("es-ES", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </p>
       </div>
-      <div className="ml-auto flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-pulse" />
-          <span className="text-[#00D4AA] text-xs font-medium">En línea</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <div
+          className="w-2 h-2 rounded-full animate-pulse"
+          style={{ backgroundColor: "#00D4AA" }}
+        />
+        <span className="text-white/30 text-xs hidden sm:block">En línea</span>
       </div>
     </header>
   );
@@ -185,19 +216,25 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#0A0A0F] overflow-hidden">
+    <div
+      className="flex h-screen w-screen overflow-hidden"
+      style={{ backgroundColor: "#0A0A0F", fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* Sidebar */}
       <Sidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
       />
+
+      {/* Main Content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Topbar setMobileOpen={setMobileOpen} />
+        <TopBar setMobileOpen={setMobileOpen} />
+
         <main className="flex-1 overflow-y-auto">
-          <div className="min-h-full p-4 md:p-6">
+          <div className="p-4 sm:p-6 min-h-full">
             <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/importar-datos" element={<ImportarDatos />} />
               <Route path="/configuracion" element={<Configuracion />} />
