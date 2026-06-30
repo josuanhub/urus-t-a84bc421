@@ -11,36 +11,35 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  ServerCrash,
   RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const API_BASE = "https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api";
-const UPLOAD_URL = "https://www.urusverify.com/v1/factory/project/a84bc421-28d0-4551-81af-7aec26e13526/upload-data";
-const FACTORY_KEY = "factory2026";
+const TABLA = "configuracion";
+const HEADERS = { "x-factory-key": "factory2026", "Content-Type": "application/json" };
 const PAGE_SIZE = 20;
 
-const TABLA = "configuracion";
-
-const headers = { "x-factory-key": FACTORY_KEY };
-const jsonHeaders = { "x-factory-key": FACTORY_KEY, "Content-Type": "application/json" };
-
-// ── Toast ────────────────────────────────────────────────────────────────────
+// ── Toast ──────────────────────────────────────────────────────────────────
 function Toast({ toasts, remove }) {
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-80">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
       {toasts.map((t) => (
         <div
           key={t.id}
           className={`flex items-start gap-3 p-4 rounded-xl shadow-2xl border text-sm font-medium transition-all duration-300 ${
             t.type === "success"
-              ? "bg-[#00D4AA]/10 border-[#00D4AA]/40 text-[#00D4AA]"
-              : "bg-red-500/10 border-red-500/40 text-red-400"
+              ? "bg-[#0A0A0F] border-[#00D4AA] text-[#00D4AA]"
+              : "bg-[#0A0A0F] border-red-500 text-red-400"
           }`}
         >
-          {t.type === "success" ? <Check size={16} className="mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 shrink-0" />}
-          <span className="flex-1">{t.msg}</span>
-          <button onClick={() => remove(t.id)} className="opacity-60 hover:opacity-100">
+          {t.type === "success" ? (
+            <Check size={16} className="mt-0.5 shrink-0" />
+          ) : (
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          )}
+          <span className="flex-1">{t.message}</span>
+          <button onClick={() => remove(t.id)} className="opacity-60 hover:opacity-100 transition">
             <X size={14} />
           </button>
         </div>
@@ -49,61 +48,73 @@ function Toast({ toasts, remove }) {
   );
 }
 
-function useToast() {
-  const [toasts, setToasts] = useState([]);
-  const add = useCallback((msg, type = "success") => {
-    const id = Date.now() + Math.random();
-    setToasts((p) => [...p, { id, msg, type }]);
-    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 4000);
-  }, []);
-  const remove = useCallback((id) => setToasts((p) => p.filter((t) => t.id !== id)), []);
-  return { toasts, add, remove };
-}
-
-// ── Skeleton ─────────────────────────────────────────────────────────────────
-function SkeletonRow({ cols }) {
+// ── Skeleton ───────────────────────────────────────────────────────────────
+function SkeletonRow() {
   return (
-    <tr>
-      {Array.from({ length: cols }).map((_, i) => (
+    <tr className="border-b border-white/5">
+      {[...Array(5)].map((_, i) => (
         <td key={i} className="px-4 py-3">
-          <div className="h-4 rounded bg-white/5 animate-pulse" style={{ width: `${60 + (i * 17) % 40}%` }} />
+          <div className="h-4 bg-white/5 rounded animate-pulse" style={{ width: `${60 + i * 10}%` }} />
         </td>
       ))}
-      <td className="px-4 py-3">
-        <div className="flex gap-2">
-          <div className="h-7 w-7 rounded bg-white/5 animate-pulse" />
-          <div className="h-7 w-7 rounded bg-white/5 animate-pulse" />
-        </div>
-      </td>
     </tr>
   );
 }
 
-// ── Confirm Modal ─────────────────────────────────────────────────────────────
-function ConfirmModal({ open, onCancel, onConfirm, loading }) {
+// ── Modal ──────────────────────────────────────────────────────────────────
+function Modal({ open, onClose, title, children }) {
+  useEffect(() => {
+    const handler = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#1A1A2E] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20">
-            <AlertTriangle size={20} className="text-red-400" />
-          </div>
-          <h3 className="text-white font-semibold text-lg">Confirmar eliminación</h3>
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-[#1A1A2E] border border-white/10 rounded-2xl shadow-2xl z-10 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2 className="text-white font-semibold text-lg">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-white/40 hover:text-white transition rounded-lg p-1 hover:bg-white/5"
+          >
+            <X size={18} />
+          </button>
         </div>
-        <p className="text-white/60 text-sm mb-6">Esta acción no se puede deshacer. ¿Deseas continuar?</p>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Confirm Dialog ─────────────────────────────────────────────────────────
+function ConfirmDialog({ open, onClose, onConfirm, loading, itemName }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-[#1A1A2E] border border-red-500/30 rounded-2xl shadow-2xl z-10 p-6 text-center">
+        <div className="w-14 h-14 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Trash2 size={24} className="text-red-400" />
+        </div>
+        <h3 className="text-white font-semibold text-lg mb-2">Eliminar registro</h3>
+        <p className="text-white/50 text-sm mb-6">
+          ¿Estás seguro de que deseas eliminar{" "}
+          <span className="text-white/80 font-medium">"{itemName}"</span>? Esta acción no se puede deshacer.
+        </p>
         <div className="flex gap-3">
           <button
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition text-sm font-medium"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-all text-sm font-medium flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white transition text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Eliminar
@@ -114,205 +125,207 @@ function ConfirmModal({ open, onCancel, onConfirm, loading }) {
   );
 }
 
-// ── Form Modal ────────────────────────────────────────────────────────────────
-function FormModal({ open, onClose, onSave, editData, fields, loading }) {
-  const [form, setForm] = useState({});
+// ── Form ───────────────────────────────────────────────────────────────────
+function ConfigForm({ initial, onSubmit, onCancel, loading }) {
+  const empty = { clave: "", valor: "", descripcion: "", tipo: "texto", activo: true };
+  const [form, setForm] = useState(initial || empty);
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (open) {
-      const initial = {};
-      fields.forEach((f) => { initial[f] = editData ? editData[f] ?? "" : ""; });
-      setForm(initial);
-      setErrors({});
-    }
-  }, [open, editData, fields]);
 
   const validate = () => {
     const e = {};
-    fields.forEach((f) => {
-      if (!form[f] && form[f] !== 0) e[f] = "Campo requerido";
-    });
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    if (!form.clave?.trim()) e.clave = "La clave es requerida";
+    if (!form.valor?.trim()) e.valor = "El valor es requerido";
+    return e;
   };
 
-  const handle = (f, v) => {
-    setForm((p) => ({ ...p, [f]: v }));
-    if (errors[f]) setErrors((p) => ({ ...p, [f]: "" }));
-  };
-
-  const submit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (validate()) onSave(form);
+    const e2 = validate();
+    if (Object.keys(e2).length) { setErrors(e2); return; }
+    onSubmit(form);
   };
 
-  if (!open) return null;
+  const field = (key, label, type = "text", required = false) => (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-white/60 text-xs font-medium uppercase tracking-wide">
+        {label} {required && <span className="text-[#6C63FF]">*</span>}
+      </label>
+      <input
+        type={type}
+        value={form[key] ?? ""}
+        onChange={(e) => { setForm((p) => ({ ...p, [key]: e.target.value })); setErrors((p) => ({ ...p, [key]: "" })); }}
+        className={`bg-[#0A0A0F] border rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:ring-2 transition ${
+          errors[key] ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:ring-[#6C63FF]/30 focus:border-[#6C63FF]/50"
+        }`}
+        placeholder={`Ingresa ${label.toLowerCase()}`}
+      />
+      {errors[key] && <p className="text-red-400 text-xs">{errors[key]}</p>}
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#1A1A2E] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#6C63FF]/10 border border-[#6C63FF]/20">
-              <Settings size={18} className="text-[#6C63FF]" />
-            </div>
-            <h2 className="text-white font-semibold text-lg">
-              {editData ? "Editar registro" : "Nuevo registro"}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/5 text-white/50 hover:text-white transition-all"
-          >
-            <X size={18} />
-          </button>
-        </div>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {field("clave", "Clave", "text", true)}
+      {field("valor", "Valor", "text", true)}
 
-        {/* Body */}
-        <form onSubmit={submit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {fields.map((f) => (
-              <div key={f}>
-                <label className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-1.5">
-                  {f.replace(/_/g, " ")}
-                </label>
-                <input
-                  value={form[f] ?? ""}
-                  onChange={(e) => handle(f, e.target.value)}
-                  placeholder={`Ingresa ${f.replace(/_/g, " ")}`}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border text-white placeholder-white/25 text-sm outline-none transition-all focus:bg-white/8 ${
-                    errors[f]
-                      ? "border-red-500/60 focus:border-red-500"
-                      : "border-white/10 focus:border-[#6C63FF]/60"
-                  }`}
-                />
-                {errors[f] && <p className="mt-1 text-xs text-red-400">{errors[f]}</p>}
-              </div>
-            ))}
-          </div>
-
-          {/* Footer */}
-          <div className="flex gap-3 p-6 border-t border-white/10 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all"
-              style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}
-            >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              {editData ? "Guardar cambios" : "Crear registro"}
-            </button>
-          </div>
-        </form>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-white/60 text-xs font-medium uppercase tracking-wide">Descripción</label>
+        <textarea
+          value={form.descripcion ?? ""}
+          onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
+          rows={3}
+          className="bg-[#0A0A0F] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/30 focus:border-[#6C63FF]/50 transition resize-none"
+          placeholder="Descripción del parámetro"
+        />
       </div>
-    </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-white/60 text-xs font-medium uppercase tracking-wide">Tipo</label>
+        <select
+          value={form.tipo ?? "texto"}
+          onChange={(e) => setForm((p) => ({ ...p, tipo: e.target.value }))}
+          className="bg-[#0A0A0F] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/30 focus:border-[#6C63FF]/50 transition"
+        >
+          {["texto", "número", "booleano", "json", "url"].map((t) => (
+            <option key={t} value={t} className="bg-[#1A1A2E]">{t}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setForm((p) => ({ ...p, activo: !p.activo }))}
+          className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${form.activo ? "bg-[#6C63FF]" : "bg-white/10"}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.activo ? "translate-x-5" : ""}`} />
+        </button>
+        <span className="text-white/60 text-sm">Activo</span>
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition text-sm font-medium"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-1 py-2.5 rounded-xl bg-[#6C63FF] hover:bg-[#5a52e0] text-white transition text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+          {initial ? "Actualizar" : "Crear"}
+        </button>
+      </div>
+    </form>
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Main ───────────────────────────────────────────────────────────────────
 export default function Configuracion() {
-  const { toasts, add: addToast, remove: removeToast } = useToast();
-
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-  const [fields, setFields] = useState([]);
-
   const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState("");
   const [page, setPage] = useState(1);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editData, setEditData] = useState(null);
+  const [toasts, setToasts] = useState([]);
+  const [modal, setModal] = useState(null); // null | "create" | "edit"
+  const [editItem, setEditItem] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  const [confirmId, setConfirmId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchData = useCallback(async () => {
+  // Toast helpers
+  const addToast = useCallback((message, type = "success") => {
+    const id = Date.now();
+    setToasts((p) => [...p, { id, message, type }]);
+    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 4000);
+  }, []);
+  const removeToast = useCallback((id) => setToasts((p) => p.filter((t) => t.id !== id)), []);
+
+  // Fetch
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    setFetchError(false);
-    try {
-      const res = await fetch(`${API_BASE}/${TABLA}`, { headers });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const rows = Array.isArray(json) ? json : json.data ?? json.items ?? json.results ?? [];
-      setData(rows);
-      if (rows.length > 0) {
-        const systemKeys = ["id", "_id", "createdAt", "updatedAt", "__v"];
-        const f = Object.keys(rows[0]).filter((k) => !systemKeys.includes(k));
-        setFields(f.length ? f : Object.keys(rows[0]).filter((k) => k !== "id" && k !== "_id"));
-      }
-    } catch {
-      setFetchError(true);
-      addToast("Error al cargar los datos", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
+    fetch(`${API_BASE}/${TABLA}`, { headers: HEADERS })
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled) return;
+        const rows = Array.isArray(json) ? json : json.data ?? json.results ?? json.items ?? [];
+        setData(rows);
+      })
+      .catch(() => { if (!cancelled) addToast("Error al cargar los datos", "error"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [refreshKey, addToast]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  // ── Filter & Paginate ──────────────────────────────────────────────────────
-  const filtered = data.filter((row) =>
-    search
-      ? Object.values(row).some((v) =>
-          String(v).toLowerCase().includes(search.toLowerCase())
-        )
-      : true
-  );
+  // Filter & search
+  const tipos = [...new Set(data.map((d) => d.tipo).filter(Boolean))];
+  const filtered = data.filter((row) => {
+    const term = search.toLowerCase();
+    const matchSearch =
+      !term ||
+      Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(term));
+    const matchTipo = !filterTipo || row.tipo === filterTipo;
+    return matchSearch && matchTipo;
+  });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [search]);
+  const getLabel = (row) =>
+    row.clave || row.nombre || row.name || row.titulo || row.title || String(row.id || "registro");
 
-  const getId = (row) => row.id ?? row._id;
+  const getDisplayKeys = () => {
+    if (!data.length) return [];
+    const sample = data[0];
+    const priority = ["id", "clave", "valor", "descripcion", "tipo", "activo", "nombre", "valor", "estado"];
+    const keys = Object.keys(sample);
+    const ordered = priority.filter((k) => keys.includes(k));
+    const rest = keys.filter((k) => !ordered.includes(k));
+    return [...ordered, ...rest].slice(0, 6);
+  };
+  const displayKeys = getDisplayKeys();
 
-  // ── CRUD ───────────────────────────────────────────────────────────────────
-  const handleSave = async (form) => {
+  // CRUD
+  const handleCreate = async (form) => {
     setSaving(true);
-    const isEdit = !!editData;
-    const url = isEdit
-      ? `${API_BASE}/${TABLA}/${getId(editData)}`
-      : UPLOAD_URL;
-
     try {
-      let res;
-      if (isEdit) {
-        res = await fetch(url, {
-          method: "PUT",
-          headers: jsonHeaders,
-          body: JSON.stringify(form),
-        });
-      } else {
-        const body = new FormData();
-        body.append("tabla", TABLA);
-        body.append("data", JSON.stringify([form]));
-        res = await fetch(url, {
-          method: "POST",
-          headers: { "x-factory-key": FACTORY_KEY },
-          body,
-        });
-      }
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      addToast(isEdit ? "Registro actualizado correctamente" : "Registro creado correctamente");
-      setModalOpen(false);
-      setEditData(null);
-      await fetchData();
+      const res = await fetch(`${API_BASE}/${TABLA}`, {
+        method: "POST",
+        headers: HEADERS,
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error();
+      addToast("Registro creado exitosamente");
+      setModal(null);
+      setRefreshKey((k) => k + 1);
     } catch {
-      addToast(isEdit ? "Error al actualizar el registro" : "Error al crear el registro", "error");
+      addToast("Error al crear el registro", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = async (form) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/${TABLA}/${editItem.id}`, {
+        method: "PUT",
+        headers: HEADERS,
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error();
+      addToast("Registro actualizado exitosamente");
+      setModal(null);
+      setEditItem(null);
+      setRefreshKey((k) => k + 1);
+    } catch {
+      addToast("Error al actualizar el registro", "error");
     } finally {
       setSaving(false);
     }
@@ -321,14 +334,14 @@ export default function Configuracion() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`${API_BASE}/${TABLA}/${confirmId}`, {
+      const res = await fetch(`${API_BASE}/${TABLA}/${confirmDelete.id}`, {
         method: "DELETE",
-        headers,
+        headers: HEADERS,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      addToast("Registro eliminado correctamente");
-      setConfirmId(null);
-      await fetchData();
+      if (!res.ok) throw new Error();
+      addToast("Registro eliminado exitosamente");
+      setConfirmDelete(null);
+      setRefreshKey((k) => k + 1);
     } catch {
       addToast("Error al eliminar el registro", "error");
     } finally {
@@ -336,161 +349,89 @@ export default function Configuracion() {
     }
   };
 
-  const openNew = () => { setEditData(null); setModalOpen(true); };
-  const openEdit = (row) => { setEditData(row); setModalOpen(true); };
+  const renderCell = (key, val) => {
+    if (val === null || val === undefined) return <span className="text-white/20">—</span>;
+    if (typeof val === "boolean")
+      return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${val ? "bg-[#00D4AA]/10 text-[#00D4AA]" : "bg-white/5 text-white/30"}`}>
+          {val ? "Activo" : "Inactivo"}
+        </span>
+      );
+    if (key === "activo")
+      return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${val ? "bg-[#00D4AA]/10 text-[#00D4AA]" : "bg-white/5 text-white/30"}`}>
+          {val ? "Activo" : "Inactivo"}
+        </span>
+      );
+    if (key === "tipo")
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#6C63FF]/10 text-[#6C63FF] border border-[#6C63FF]/20">
+          {val}
+        </span>
+      );
+    const str = String(val);
+    return <span className="text-white/70 truncate max-w-[180px] block" title={str}>{str}</span>;
+  };
 
-  const displayFields = fields.length ? fields : [];
-  const colCount = displayFields.length;
-
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-white">
       <Toast toasts={toasts} remove={removeToast} />
-      <ConfirmModal
-        open={!!confirmId}
-        onCancel={() => setConfirmId(null)}
-        onConfirm={handleDelete}
-        loading={deleting}
-      />
-      <FormModal
-        open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditData(null); }}
-        onSave={handleSave}
-        editData={editData}
-        fields={displayFields}
-        loading={saving}
-      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div
-              className="p-3 rounded-2xl border border-[#6C63FF]/20"
-              style={{ background: "linear-gradient(135deg, #6C63FF22, #00D4AA11)" }}
-            >
-              <Settings size={24} className="text-[#6C63FF]" />
+      {/* Header */}
+      <div className="border-b border-white/5 bg-[#0A0A0F]/80 backdrop-blur-xl sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#6C63FF]/10 border border-[#6C63FF]/20 flex items-center justify-center">
+              <Settings size={18} className="text-[#6C63FF]" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Configuración del sistema</h1>
-              <p className="text-white/40 text-sm mt-0.5">
-                Gestiona los parámetros de <span className="text-[#6C63FF]">t</span>
-              </p>
+              <h1 className="text-white font-semibold text-base leading-none">Configuración del sistema</h1>
+              <p className="text-white/40 text-xs mt-0.5">Gestión de parámetros</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
-              onClick={fetchData}
-              disabled={loading}
-              className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-white/50 hover:text-white transition-all"
-              title="Recargar"
+              onClick={() => setRefreshKey((k) => k + 1)}
+              className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition"
+              title="Actualizar"
             >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              <RefreshCw size={15} />
             </button>
             <button
-              onClick={openNew}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold shadow-lg shadow-[#6C63FF]/20 transition-all hover:shadow-[#6C63FF]/40 hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}
+              onClick={() => { setEditItem(null); setModal("create"); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#6C63FF] hover:bg-[#5a52e0] text-white text-sm font-medium transition shadow-lg shadow-[#6C63FF]/20"
             >
-              <Plus size={16} />
-              Nuevo
+              <Plus size={15} />
+              <span className="hidden sm:inline">Nuevo</span>
             </button>
           </div>
         </div>
+      </div>
 
-        {/* ── Search ── */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
             <input
+              type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar registros..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/25 text-sm outline-none focus:border-[#6C63FF]/50 focus:bg-white/8 transition-all"
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Buscar en configuraciones..."
+              className="w-full bg-[#1A1A2E] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/30 focus:border-[#6C63FF]/40 transition"
             />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70"
-              >
-                <X size={14} />
-              </button>
-            )}
           </div>
-          {search && !loading && (
-            <p className="mt-2 text-xs text-white/40">
-              {filtered.length} resultado{filtered.length !== 1 ? "s" : ""} para "{search}"
-            </p>
-          )}
-        </div>
-
-        {/* ── Table Card ── */}
-        <div className="bg-[#1A1A2E] border border-white/8 rounded-2xl overflow-hidden shadow-xl">
-          {/* Error */}
-          {fetchError && !loading && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
-                <ServerCrash size={32} className="text-red-400" />
-              </div>
-              <div className="text-center">
-                <p className="text-white font-medium">Error al cargar datos</p>
-                <p className="text-white/40 text-sm mt-1">No se pudo conectar con el servidor</p>
-              </div>
-              <button
-                onClick={fetchData}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6C63FF] hover:bg-[#5a52e0] text-white text-sm font-medium transition-all"
+          {tipos.length > 0 && (
+            <div className="relative">
+              <SlidersHorizontal size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+              <select
+                value={filterTipo}
+                onChange={(e) => { setFilterTipo(e.target.value); setPage(1); }}
+                className="bg-[#1A1A2E] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/30 focus:border-[#6C63FF]/40 transition appearance-none min-w-[140px]"
               >
-                <RefreshCw size={14} /> Reintentar
-              </button>
+                <option value="" className="bg-[#1A1A2E]">Todos los tipos</option>
+                {tipos.map((t) => <option key={t} value={t} className="bg-[#1A1A2E]">{t}</option>)}
+              </select>
             </div>
           )}
-
-          {/* Table */}
-          {!fetchError && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/8">
-                    {loading ? (
-                      <>
-                        {[...Array(3)].map((_, i) => (
-                          <th key={i} className="px-4 py-3 text-left">
-                            <div className="h-3 w-20 rounded bg-white/5 animate-pulse" />
-                          </th>
-                        ))}
-                        <th className="px-4 py-3" />
-                      </>
-                    ) : displayFields.length > 0 ? (
-                      <>
-                        {displayFields.map((f) => (
-                          <th
-                            key={f}
-                            className="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wider whitespace-nowrap"
-                          >
-                            {f.replace(/_/g, " ")}
-                          </th>
-                        ))}
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-white/40 uppercase tracking-wider">
-                          Acciones
-                        </th>
-                      </>
-                    ) : null}
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-white/5">
-                  {/* Skeleton rows */}
-                  {loading &&
-                    [...Array(6)].map((_, i) => (
-                      <SkeletonRow key={i} cols={3} />
-                    ))}
-
-                  {/* Empty state */}
-                  {!loading && !fetchError && filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={colCount + 1} className="text-center py-20">
-                        <div className="flex flex-col items-center gap-4">
-                          <div
-                            className="p-5 rounded-2xl border border-[#6C63FF]/20"
-                            style={{ background: "linear-gradient(135deg, #
+        </div>
