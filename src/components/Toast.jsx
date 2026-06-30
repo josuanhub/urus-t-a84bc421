@@ -1,208 +1,216 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  X,
+} from "lucide-react";
 
+// ─── Context ────────────────────────────────────────────────────────────────
 const ToastContext = createContext(null);
 
-const TOAST_TYPES = {
+// ─── Hook ───────────────────────────────────────────────────────────────────
+export const useToast = () => {
+  const ctx = useContext(ToastContext);
+  if (!ctx) throw new Error("useToast must be used inside <ToastProvider>");
+  return ctx;
+};
+
+// ─── Config per type ─────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
   success: {
-    icon: CheckCircle,
-    bg: 'bg-[#0A0A0F]',
-    border: 'border-[#00D4AA]',
-    iconColor: 'text-[#00D4AA]',
-    title: 'Éxito',
-    glow: 'shadow-[0_0_20px_rgba(0,212,170,0.15)]',
+    icon: CheckCircle2,
+    bar: "bg-[#00D4AA]",
+    iconColor: "text-[#00D4AA]",
+    ring: "ring-[#00D4AA]/20",
+    label: "Éxito",
   },
   error: {
-    icon: XCircle,
-    bg: 'bg-[#0A0A0F]',
-    border: 'border-red-500',
-    iconColor: 'text-red-500',
-    title: 'Error',
-    glow: 'shadow-[0_0_20px_rgba(239,68,68,0.15)]',
-  },
-  info: {
-    icon: Info,
-    bg: 'bg-[#0A0A0F]',
-    border: 'border-[#6C63FF]',
-    iconColor: 'text-[#6C63FF]',
-    title: 'Información',
-    glow: 'shadow-[0_0_20px_rgba(108,99,255,0.15)]',
+    icon: AlertCircle,
+    bar: "bg-red-500",
+    iconColor: "text-red-400",
+    ring: "ring-red-500/20",
+    label: "Error",
   },
   warning: {
     icon: AlertTriangle,
-    bg: 'bg-[#0A0A0F]',
-    border: 'border-yellow-400',
-    iconColor: 'text-yellow-400',
-    title: 'Advertencia',
-    glow: 'shadow-[0_0_20px_rgba(250,204,21,0.15)]',
+    bar: "bg-amber-400",
+    iconColor: "text-amber-400",
+    ring: "ring-amber-400/20",
+    label: "Advertencia",
+  },
+  info: {
+    icon: Info,
+    bar: "bg-[#6C63FF]",
+    iconColor: "text-[#6C63FF]",
+    ring: "ring-[#6C63FF]/20",
+    label: "Info",
   },
 };
 
 const AUTO_DISMISS_MS = 4000;
 const MAX_TOASTS = 3;
 
-let toastIdCounter = 0;
-
-function ToastItem({ toast, onRemove }) {
+// ─── Single Toast Item ────────────────────────────────────────────────────────
+const ToastItem = ({ toast, onRemove }) => {
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const progressRef = useRef(null);
   const timerRef = useRef(null);
-  const config = TOAST_TYPES[toast.type] || TOAST_TYPES.info;
+  const config = TYPE_CONFIG[toast.type] ?? TYPE_CONFIG.info;
   const Icon = config.icon;
+
+  // Animate in
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setVisible(true));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const dismiss = useCallback(() => {
     if (leaving) return;
     setLeaving(true);
+    setVisible(false);
     clearTimeout(timerRef.current);
-    setTimeout(() => {
-      onRemove(toast.id);
-    }, 350);
+    setTimeout(() => onRemove(toast.id), 350);
   }, [leaving, onRemove, toast.id]);
 
+  // Auto-dismiss
   useEffect(() => {
-    const enterTimer = setTimeout(() => setVisible(true), 10);
     timerRef.current = setTimeout(dismiss, AUTO_DISMISS_MS);
-    return () => {
-      clearTimeout(enterTimer);
-      clearTimeout(timerRef.current);
-    };
-  }, []);
+    return () => clearTimeout(timerRef.current);
+  }, [dismiss]);
 
-  const progressDuration = `${AUTO_DISMISS_MS}ms`;
+  // Progress bar animation via CSS custom property
+  useEffect(() => {
+    if (!progressRef.current) return;
+    progressRef.current.style.transition = `width ${AUTO_DISMISS_MS}ms linear`;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (progressRef.current) progressRef.current.style.width = "0%";
+      });
+    });
+  }, []);
 
   return (
     <div
       role="alert"
       aria-live="assertive"
-      className={`
-        relative flex items-start gap-3 w-full max-w-sm
-        ${config.bg} border ${config.border} ${config.glow}
-        rounded-xl p-4 overflow-hidden
-        transition-all duration-350 ease-out
-        ${visible && !leaving
-          ? 'opacity-100 translate-x-0 scale-100'
-          : leaving
-          ? 'opacity-0 translate-x-8 scale-95'
-          : 'opacity-0 translate-x-8 scale-95'
-        }
-      `}
-      style={{ transition: 'opacity 350ms ease, transform 350ms ease' }}
+      className={[
+        "relative flex items-start gap-3 w-full max-w-sm",
+        "bg-[#1A1A2E] border border-white/[0.06]",
+        `ring-1 ${config.ring}`,
+        "rounded-xl px-4 pt-4 pb-5 shadow-2xl",
+        "transition-all duration-350 ease-out",
+        visible && !leaving
+          ? "opacity-100 translate-x-0 scale-100"
+          : "opacity-0 translate-x-12 scale-95",
+      ].join(" ")}
+      style={{ transitionDuration: "350ms" }}
     >
-      {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
-        <div
-          className={`h-full ${config.border.replace('border-', 'bg-')}`}
-          style={{
-            animation: `shrink ${progressDuration} linear forwards`,
-          }}
-        />
-      </div>
+      {/* Left accent bar */}
+      <span
+        className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full ${config.bar}`}
+      />
 
       {/* Icon */}
-      <div className="flex-shrink-0 mt-0.5">
-        <Icon size={20} className={config.iconColor} strokeWidth={2} />
-      </div>
+      <Icon
+        size={20}
+        className={`${config.iconColor} mt-0.5 shrink-0`}
+        strokeWidth={2}
+      />
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {toast.title && (
-          <p className="text-sm font-semibold text-white leading-tight mb-0.5">
-            {toast.title}
-          </p>
-        )}
-        {toast.message && (
-          <p className="text-xs text-white/60 leading-relaxed break-words">
-            {toast.message}
-          </p>
-        )}
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-0.5">
+          {config.label}
+        </p>
+        <p className="text-sm text-white/90 leading-snug break-words">
+          {toast.message}
+        </p>
       </div>
 
-      {/* Close button */}
+      {/* Close */}
       <button
         onClick={dismiss}
         aria-label="Cerrar notificación"
-        className="
-          flex-shrink-0 mt-0.5 p-1 rounded-lg
-          text-white/30 hover:text-white/70
-          hover:bg-white/10
-          transition-colors duration-150
-          focus:outline-none focus:ring-1 focus:ring-white/20
-        "
+        className="shrink-0 mt-0.5 p-1 rounded-lg text-white/30 hover:text-white/80 hover:bg-white/10 transition-colors"
       >
         <X size={14} strokeWidth={2.5} />
       </button>
 
-      <style>{`
-        @keyframes shrink {
-          from { width: 100%; }
-          to   { width: 0%; }
-        }
-      `}</style>
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-white/[0.06]">
+        <div
+          ref={progressRef}
+          className={`h-full rounded-full ${config.bar} opacity-60`}
+          style={{ width: "100%" }}
+        />
+      </div>
     </div>
   );
-}
+};
 
-export function ToastProvider({ children }) {
+// ─── Provider ─────────────────────────────────────────────────────────────────
+export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const counterRef = useRef(0);
 
-  const addToast = useCallback(({ type = 'info', title, message }) => {
+  const addToast = useCallback((message, type = "info") => {
+    const id = ++counterRef.current;
     setToasts((prev) => {
-      const limited = prev.length >= MAX_TOASTS ? prev.slice(prev.length - MAX_TOASTS + 1) : prev;
-      return [
-        ...limited,
-        { id: ++toastIdCounter, type, title, message },
-      ];
+      const next = [...prev, { id, message, type }];
+      // Keep only the last MAX_TOASTS
+      return next.length > MAX_TOASTS ? next.slice(next.length - MAX_TOASTS) : next;
     });
+    return id;
   }, []);
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const toast = useCallback(
-    (message, type = 'info', title) => {
-      addToast({ type, title: title || TOAST_TYPES[type]?.title, message });
-    },
-    [addToast]
-  );
-
-  toast.success = (message, title) => addToast({ type: 'success', title: title || TOAST_TYPES.success.title, message });
-  toast.error   = (message, title) => addToast({ type: 'error',   title: title || TOAST_TYPES.error.title,   message });
-  toast.info    = (message, title) => addToast({ type: 'info',    title: title || TOAST_TYPES.info.title,    message });
-  toast.warning = (message, title) => addToast({ type: 'warning', title: title || TOAST_TYPES.warning.title, message });
+  // Convenience helpers
+  const toast = {
+    success: (msg) => addToast(msg, "success"),
+    error: (msg) => addToast(msg, "error"),
+    info: (msg) => addToast(msg, "info"),
+    warning: (msg) => addToast(msg, "warning"),
+    show: addToast,
+    dismiss: removeToast,
+  };
 
   return (
-    <ToastContext.Provider value={{ toast, addToast, removeToast }}>
+    <ToastContext.Provider value={toast}>
       {children}
 
-      {/* Toast container — bottom-right */}
+      {/* Portal-like container — fixed bottom-right */}
       <div
         aria-label="Notificaciones"
-        className="
-          fixed z-[9999]
-          bottom-4 right-4
-          sm:bottom-6 sm:right-6
-          flex flex-col-reverse gap-3
-          w-[calc(100vw-2rem)] max-w-sm
-          pointer-events-none
-        "
+        className={[
+          "fixed z-[9999] bottom-4 right-4",
+          "flex flex-col-reverse gap-2 items-end",
+          "pointer-events-none",
+          "w-[calc(100vw-2rem)] sm:w-auto",
+        ].join(" ")}
       >
         {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto">
+          <div key={t.id} className="pointer-events-auto w-full sm:w-auto">
             <ToastItem toast={t} onRemove={removeToast} />
           </div>
         ))}
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error('useToast debe usarse dentro de <ToastProvider>');
-  }
-  return ctx.toast;
-}
+};
 
 export default ToastProvider;
