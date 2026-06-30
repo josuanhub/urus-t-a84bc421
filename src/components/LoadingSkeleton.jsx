@@ -1,249 +1,213 @@
 import React from 'react';
 
 const LoadingSkeleton = ({ rows = 5, cols = 3, type = 'table' }) => {
-  const baseSkeletonClass = "bg-[#1A1A2E] animate-pulse rounded";
+  const baseSkeletonClass = "bg-[#1A1A2E] rounded animate-pulse";
+  const shimmerClass = "bg-gradient-to-r from-[#1A1A2E] via-[#2A2A4E] to-[#1A1A2E] rounded animate-pulse";
 
-  const TableSkeleton = () => (
-    <div className="w-full overflow-x-auto">
-      <div className="min-w-full">
-        {/* Header */}
-        <div className="flex gap-3 px-4 py-3 border-b border-[#6C63FF]/20 mb-2">
+  // ─── TABLE SKELETON ───────────────────────────────────────────────────────────
+  if (type === 'table') {
+    return (
+      <div className="w-full overflow-hidden rounded-xl border border-[#6C63FF]/20 bg-[#0A0A0F]">
+        {/* Table Header */}
+        <div className="grid gap-3 px-6 py-4 border-b border-[#6C63FF]/20 bg-[#1A1A2E]/40"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
           {Array.from({ length: cols }).map((_, colIdx) => (
-            <div
-              key={`header-${colIdx}`}
-              className={`h-4 ${baseSkeletonClass} flex-1`}
-              style={{ opacity: 0.6 }}
-            />
+            <div key={`th-${colIdx}`} className="flex items-center gap-2">
+              <div className={`h-3 rounded ${shimmerClass}`}
+                style={{ width: colIdx === 0 ? '60%' : colIdx === cols - 1 ? '40%' : '70%' }}
+              />
+            </div>
           ))}
         </div>
 
-        {/* Rows */}
-        {Array.from({ length: rows }).map((_, rowIdx) => (
-          <div
-            key={`row-${rowIdx}`}
-            className="flex gap-3 px-4 py-3 border-b border-white/5 items-center"
-            style={{ animationDelay: `${rowIdx * 80}ms` }}
-          >
-            {/* Checkbox/Icon column */}
-            <div className={`h-4 w-4 ${baseSkeletonClass} rounded-sm shrink-0`} />
-
-            {Array.from({ length: cols }).map((_, colIdx) => (
-              <div
-                key={`cell-${rowIdx}-${colIdx}`}
-                className={`h-3 ${baseSkeletonClass} flex-1`}
-                style={{
-                  maxWidth: colIdx === 0 ? '30%' : colIdx === cols - 1 ? '15%' : '100%',
-                  animationDelay: `${(rowIdx * cols + colIdx) * 40}ms`,
-                }}
-              />
-            ))}
-
-            {/* Action buttons */}
-            <div className="flex gap-2 shrink-0">
-              <div className={`h-7 w-7 ${baseSkeletonClass} rounded-md`} />
-              <div className={`h-7 w-7 ${baseSkeletonClass} rounded-md`} />
+        {/* Table Rows */}
+        <div className="divide-y divide-[#6C63FF]/10">
+          {Array.from({ length: rows }).map((_, rowIdx) => (
+            <div
+              key={`tr-${rowIdx}`}
+              className="grid gap-3 px-6 py-4 hover:bg-[#1A1A2E]/20 transition-colors"
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+            >
+              {Array.from({ length: cols }).map((_, colIdx) => (
+                <div key={`td-${rowIdx}-${colIdx}`} className="flex items-center gap-3">
+                  {colIdx === 0 && (
+                    <div className={`w-8 h-8 rounded-full flex-shrink-0 ${shimmerClass}`} />
+                  )}
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <div
+                      className={`h-3 ${shimmerClass}`}
+                      style={{
+                        width: colIdx === 0
+                          ? `${55 + (rowIdx * 7) % 30}%`
+                          : colIdx === cols - 1
+                            ? '45%'
+                            : `${60 + (colIdx * 11 + rowIdx * 5) % 25}%`
+                      }}
+                    />
+                    {colIdx === 0 && (
+                      <div className={`h-2 ${shimmerClass}`} style={{ width: '40%' }} />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
-        {/* Footer pagination */}
-        <div className="flex items-center justify-between px-4 py-3 mt-2">
-          <div className={`h-3 w-32 ${baseSkeletonClass}`} />
+        {/* Table Footer */}
+        <div className="flex items-center justify-between px-6 py-3 border-t border-[#6C63FF]/20 bg-[#1A1A2E]/20">
+          <div className={`h-3 w-32 ${shimmerClass}`} />
           <div className="flex gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className={`h-7 w-7 ${baseSkeletonClass} rounded-md`} />
+            {[1, 2, 3].map(i => (
+              <div key={i} className={`w-8 h-8 rounded-lg ${shimmerClass}`} />
             ))}
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const CardsSkeleton = () => {
-    const gridCols =
-      cols === 1
-        ? 'grid-cols-1'
-        : cols === 2
-        ? 'grid-cols-1 sm:grid-cols-2'
-        : cols === 3
-        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-        : cols === 4
-        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+  // ─── CARDS SKELETON ───────────────────────────────────────────────────────────
+  if (type === 'cards') {
+    const colsClass = {
+      1: 'grid-cols-1',
+      2: 'grid-cols-1 sm:grid-cols-2',
+      3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+      4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+    }[Math.min(cols, 4)] || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
 
     return (
-      <div className={`grid ${gridCols} gap-4 w-full`}>
-        {Array.from({ length: rows * Math.min(cols, 3) }).map((_, idx) => (
+      <div className={`grid gap-4 ${colsClass}`}>
+        {Array.from({ length: rows * cols }).map((_, idx) => (
           <div
             key={`card-${idx}`}
-            className="bg-[#1A1A2E] rounded-xl border border-white/5 p-5 flex flex-col gap-4"
-            style={{ animationDelay: `${idx * 60}ms` }}
+            className="rounded-xl border border-[#6C63FF]/20 bg-[#0A0A0F] p-5 flex flex-col gap-4 overflow-hidden relative"
           >
-            {/* Card header */}
-            <div className="flex items-center justify-between">
+            {/* Card accent line */}
+            <div className={`absolute top-0 left-0 right-0 h-0.5 ${shimmerClass}`} />
+
+            {/* Card Header */}
+            <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className={`h-10 w-10 ${baseSkeletonClass} rounded-xl`} />
+                <div className={`w-10 h-10 rounded-xl flex-shrink-0 ${shimmerClass}`} />
                 <div className="flex flex-col gap-2">
-                  <div className={`h-3 w-24 ${baseSkeletonClass}`} />
-                  <div className={`h-2 w-16 ${baseSkeletonClass}`} />
+                  <div className={`h-3.5 w-28 ${shimmerClass}`} />
+                  <div className={`h-2.5 w-16 ${shimmerClass}`} />
                 </div>
               </div>
-              <div className={`h-6 w-16 ${baseSkeletonClass} rounded-full`} />
+              <div className={`w-6 h-6 rounded-md ${shimmerClass}`} />
             </div>
 
-            {/* Card body */}
+            {/* Card Body */}
+            <div className="flex flex-col gap-3">
+              <div className={`h-8 w-3/4 rounded-lg ${shimmerClass}`} />
+              <div className="flex flex-col gap-2">
+                <div className={`h-2.5 w-full ${shimmerClass}`} />
+                <div className={`h-2.5 w-5/6 ${shimmerClass}`} />
+                <div className={`h-2.5 w-4/6 ${shimmerClass}`} />
+              </div>
+            </div>
+
+            {/* Progress Bar */}
             <div className="flex flex-col gap-2">
-              <div className={`h-2 w-full ${baseSkeletonClass}`} />
-              <div className={`h-2 w-5/6 ${baseSkeletonClass}`} />
-              <div className={`h-2 w-4/6 ${baseSkeletonClass}`} />
+              <div className="flex justify-between">
+                <div className={`h-2 w-16 ${shimmerClass}`} />
+                <div className={`h-2 w-8 ${shimmerClass}`} />
+              </div>
+              <div className={`h-1.5 w-full rounded-full ${baseSkeletonClass}`}>
+                <div
+                  className={`h-full rounded-full ${shimmerClass}`}
+                  style={{ width: `${30 + (idx * 13) % 55}%` }}
+                />
+              </div>
             </div>
 
-            {/* Card stats */}
-            <div className="grid grid-cols-3 gap-3 pt-1">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex flex-col gap-1 items-center">
-                  <div className={`h-5 w-10 ${baseSkeletonClass}`} />
-                  <div className={`h-2 w-8 ${baseSkeletonClass}`} />
-                </div>
-              ))}
-            </div>
-
-            {/* Card footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-white/5">
-              <div className={`h-2 w-20 ${baseSkeletonClass}`} />
-              <div className={`h-7 w-20 ${baseSkeletonClass} rounded-lg`} />
+            {/* Card Footer */}
+            <div className="flex items-center justify-between pt-1 border-t border-[#6C63FF]/10">
+              <div className="flex gap-2">
+                {[1, 2].map(i => (
+                  <div key={i} className={`h-6 w-16 rounded-full ${shimmerClass}`} />
+                ))}
+              </div>
+              <div className={`h-7 w-20 rounded-lg ${shimmerClass}`} />
             </div>
           </div>
         ))}
       </div>
     );
-  };
+  }
 
-  const ListSkeleton = () => (
-    <div className="w-full flex flex-col gap-2">
-      {Array.from({ length: rows }).map((_, rowIdx) => (
-        <div
-          key={`list-${rowIdx}`}
-          className="bg-[#1A1A2E] rounded-xl border border-white/5 px-4 py-3 flex items-center gap-4"
-          style={{ animationDelay: `${rowIdx * 70}ms` }}
-        >
-          {/* Leading icon/avatar */}
-          <div className={`h-10 w-10 ${baseSkeletonClass} rounded-full shrink-0`} />
-
-          {/* Content */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <div className={`h-3 w-36 ${baseSkeletonClass}`} />
-              <div className={`h-5 w-16 ${baseSkeletonClass} rounded-full`} />
-            </div>
-            <div className={`h-2 w-64 max-w-full ${baseSkeletonClass}`} />
-          </div>
-
-          {/* Cols metadata */}
-          <div className="hidden sm:flex items-center gap-6 shrink-0">
-            {Array.from({ length: Math.min(cols, 3) }).map((_, colIdx) => (
-              <div key={colIdx} className="flex flex-col gap-1 items-end">
-                <div className={`h-3 w-16 ${baseSkeletonClass}`} />
-                <div className={`h-2 w-10 ${baseSkeletonClass}`} />
-              </div>
-            ))}
-          </div>
-
-          {/* Trailing actions */}
-          <div className="flex gap-2 shrink-0">
-            <div className={`h-8 w-8 ${baseSkeletonClass} rounded-lg`} />
-            <div className={`h-8 w-8 ${baseSkeletonClass} rounded-lg`} />
+  // ─── LIST SKELETON ────────────────────────────────────────────────────────────
+  if (type === 'list') {
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        {/* List Header */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#1A1A2E]/40 border border-[#6C63FF]/20 mb-2">
+          <div className={`h-3 w-40 ${shimmerClass}`} />
+          <div className="flex gap-2">
+            <div className={`h-7 w-24 rounded-lg ${shimmerClass}`} />
+            <div className={`h-7 w-7 rounded-lg ${shimmerClass}`} />
           </div>
         </div>
-      ))}
 
-      {/* Load more */}
-      <div className="flex justify-center pt-4">
-        <div className={`h-9 w-32 ${baseSkeletonClass} rounded-lg`} />
-      </div>
-    </div>
-  );
-
-  const renderHeader = () => (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex flex-col gap-2">
-        <div className={`h-5 w-40 ${baseSkeletonClass}`} />
-        <div className={`h-3 w-24 ${baseSkeletonClass}`} />
-      </div>
-      <div className="flex gap-3">
-        <div className={`h-9 w-28 ${baseSkeletonClass} rounded-lg`} />
-        <div className={`h-9 w-9 ${baseSkeletonClass} rounded-lg`} />
-      </div>
-    </div>
-  );
-
-  const renderFilters = () => (
-    <div className="flex flex-wrap gap-3 mb-5">
-      <div className={`h-9 w-48 ${baseSkeletonClass} rounded-lg`} />
-      <div className={`h-9 w-32 ${baseSkeletonClass} rounded-lg`} />
-      <div className={`h-9 w-32 ${baseSkeletonClass} rounded-lg`} />
-      <div className="ml-auto flex gap-2">
-        <div className={`h-9 w-9 ${baseSkeletonClass} rounded-lg`} />
-        <div className={`h-9 w-9 ${baseSkeletonClass} rounded-lg`} />
-      </div>
-    </div>
-  );
-
-  return (
-    <div
-      className="min-h-screen w-full bg-[#0A0A0F] p-4 sm:p-6 lg:p-8"
-      aria-busy="true"
-      aria-label="Cargando contenido..."
-      role="status"
-    >
-      {/* Shimmer overlay effect via keyframes */}
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .skeleton-shimmer {
-          background: linear-gradient(
-            90deg,
-            #1A1A2E 25%,
-            #252545 50%,
-            #1A1A2E 75%
-          );
-          background-size: 200% 100%;
-          animation: shimmer 2s infinite linear, pulse 2s cubic-bezier(0.4,0,0.6,1) infinite;
-        }
-      `}</style>
-
-      {/* Top stats summary strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {/* List Items */}
+        {Array.from({ length: rows }).map((_, rowIdx) => (
           <div
-            key={`stat-${i}`}
-            className="bg-[#1A1A2E] rounded-xl border border-white/5 p-4 flex items-center gap-3"
+            key={`li-${rowIdx}`}
+            className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[#6C63FF]/10 bg-[#0A0A0F] hover:border-[#6C63FF]/25 transition-all"
           >
-            <div className={`h-10 w-10 ${baseSkeletonClass} rounded-xl shrink-0`} />
-            <div className="flex flex-col gap-2 flex-1">
-              <div className={`h-2 w-16 ${baseSkeletonClass}`} />
-              <div className={`h-4 w-12 ${baseSkeletonClass}`} />
+            {/* Index / Checkbox */}
+            <div className={`w-5 h-5 rounded flex-shrink-0 ${shimmerClass}`} />
+
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className={`w-10 h-10 rounded-full ${shimmerClass}`} />
+              <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0A0A0F] ${shimmerClass}`} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 grid gap-1">
+              <div className={`h-3.5 ${shimmerClass}`} style={{ width: `${45 + (rowIdx * 9) % 30}%` }} />
+              <div className={`h-2.5 ${shimmerClass}`} style={{ width: `${30 + (rowIdx * 7) % 25}%` }} />
+            </div>
+
+            {/* Cols data */}
+            {Array.from({ length: Math.max(0, cols - 1) }).map((_, colIdx) => (
+              <div key={`li-col-${rowIdx}-${colIdx}`} className="hidden sm:flex flex-col gap-1 flex-shrink-0"
+                style={{ minWidth: '80px' }}
+              >
+                <div className={`h-3 ${shimmerClass}`} style={{ width: `${50 + (colIdx * 11) % 30}%` }} />
+                <div className={`h-2 ${shimmerClass}`} style={{ width: '40%' }} />
+              </div>
+            ))}
+
+            {/* Badge */}
+            <div className={`h-6 w-16 rounded-full flex-shrink-0 hidden md:block ${shimmerClass}`} />
+
+            {/* Actions */}
+            <div className="flex gap-1.5 flex-shrink-0">
+              {[1, 2].map(i => (
+                <div key={i} className={`w-7 h-7 rounded-lg ${shimmerClass}`} />
+              ))}
             </div>
           </div>
         ))}
+
+        {/* List Footer */}
+        <div className="flex items-center justify-between px-4 py-3 mt-2">
+          <div className={`h-2.5 w-48 ${shimmerClass}`} />
+          <div className="flex gap-1.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={`w-8 h-8 rounded-lg ${shimmerClass}`} />
+            ))}
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      {/* Main content panel */}
-      <div className="bg-[#0A0A0F] border border-white/5 rounded-2xl p-4 sm:p-6">
-        {renderHeader()}
-        {renderFilters()}
-
-        {type === 'table' && <TableSkeleton />}
-        {type === 'cards' && <CardsSkeleton />}
-        {type === 'list' && <ListSkeleton />}
-      </div>
-
-      {/* Screen reader text */}
-      <span className="sr-only">Cargando datos del sistema t...</span>
-    </div>
-  );
+  return null;
 };
 
 export default LoadingSkeleton;
