@@ -1,33 +1,22 @@
 import { useState, useRef, useCallback } from "react";
 import {
   Upload,
-  FileSpreadsheet,
   FileText,
-  Image,
+  FileSpreadsheet,
+  FileImage,
   File,
+  X,
   CheckCircle,
-  XCircle,
+  AlertCircle,
+  Loader2,
   Trash2,
   CloudUpload,
-  AlertCircle,
-  Table2,
-  Hash,
 } from "lucide-react";
 
 const UPLOAD_URL =
   "https://www.urusverify.com/v1/factory/project/a84bc421-28d0-4551-81af-7aec26e13526/upload-data";
 
 const ACCEPTED_TYPES = [
-  ".xlsx",
-  ".xls",
-  ".csv",
-  ".pdf",
-  ".png",
-  ".jpg",
-  ".jpeg",
-];
-
-const ACCEPTED_MIME = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "text/csv",
@@ -36,23 +25,7 @@ const ACCEPTED_MIME = [
   "image/jpeg",
 ];
 
-function getFileIcon(file) {
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
-    return <FileSpreadsheet className="w-8 h-8 text-[#00D4AA]" />;
-  }
-  if (name.endsWith(".pdf")) {
-    return <FileText className="w-8 h-8 text-[#6C63FF]" />;
-  }
-  if (
-    name.endsWith(".png") ||
-    name.endsWith(".jpg") ||
-    name.endsWith(".jpeg")
-  ) {
-    return <Image className="w-8 h-8 text-[#6C63FF]" />;
-  }
-  return <File className="w-8 h-8 text-gray-400" />;
-}
+const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv", ".pdf", ".png", ".jpg"];
 
 function formatBytes(bytes) {
   if (bytes === 0) return "0 B";
@@ -62,53 +35,89 @@ function formatBytes(bytes) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-function isValidFile(file) {
+function getFileIcon(file) {
   const name = file.name.toLowerCase();
-  return ACCEPTED_TYPES.some((ext) => name.endsWith(ext));
+  if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
+    return <FileSpreadsheet className="w-8 h-8 text-emerald-400" />;
+  }
+  if (name.endsWith(".pdf")) {
+    return <FileText className="w-8 h-8 text-red-400" />;
+  }
+  if (name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")) {
+    return <FileImage className="w-8 h-8 text-blue-400" />;
+  }
+  return <File className="w-8 h-8 text-gray-400" />;
+}
+
+function getFileTypeLabel(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".xlsx")) return "Excel (XLSX)";
+  if (name.endsWith(".xls")) return "Excel (XLS)";
+  if (name.endsWith(".csv")) return "CSV";
+  if (name.endsWith(".pdf")) return "PDF";
+  if (name.endsWith(".png")) return "PNG";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "JPG";
+  return "Archivo";
 }
 
 export default function ImportarDatos() {
-  const [status, setStatus] = useState("idle"); // idle | dragging | uploading | success | error
+  const [status, setStatus] = useState("idle");
+  const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [dragError, setDragError] = useState("");
-  const fileInputRef = useRef(null);
+  const [error, setError] = useState(null);
+  const inputRef = useRef(null);
+  const dragCounter = useRef(0);
   const xhrRef = useRef(null);
 
-  const handleFile = useCallback((file) => {
-    setDragError("");
-    if (!isValidFile(file)) {
-      setDragError(
-        `Tipo de archivo no permitido. Acepta: ${ACCEPTED_TYPES.join(", ")}`
-      );
-      return;
-    }
-    setSelectedFile(file);
-    setResult(null);
-    setErrorMsg("");
-    setProgress(0);
-    setStatus("idle");
+  const isValidFile = useCallback((file) => {
+    const name = file.name.toLowerCase();
+    return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
   }, []);
 
-  const handleDragOver = useCallback((e) => {
+  const handleFile = useCallback(
+    (file) => {
+      if (!file) return;
+      if (!isValidFile(file)) {
+        setError(`Tipo de archivo no permitido. Acepta: ${ACCEPTED_EXTENSIONS.join(", ")}`);
+        setStatus("error");
+        return;
+      }
+      setSelectedFile(file);
+      setStatus("idle");
+      setResult(null);
+      setError(null);
+      setProgress(0);
+    },
+    [isValidFile]
+  );
+
+  const handleDragEnter = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setStatus("dragging");
+    dragCounter.current += 1;
+    if (dragCounter.current === 1) setDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setStatus("idle");
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) setDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
   }, []);
 
   const handleDrop = useCallback(
     (e) => {
       e.preventDefault();
       e.stopPropagation();
-      setStatus("idle");
+      dragCounter.current = 0;
+      setDragging(false);
       const file = e.dataTransfer.files?.[0];
       if (file) handleFile(file);
     },
@@ -130,7 +139,7 @@ export default function ImportarDatos() {
     setStatus("uploading");
     setProgress(0);
     setResult(null);
-    setErrorMsg("");
+    setError(null);
 
     const formData = new FormData();
     formData.append("file", selectedFile);
@@ -138,409 +147,376 @@ export default function ImportarDatos() {
     const xhr = new XMLHttpRequest();
     xhrRef.current = xhr;
 
-    xhr.open("POST", UPLOAD_URL, true);
-    xhr.setRequestHeader("x-factory-key", "factory2026");
-
-    xhr.upload.onprogress = (e) => {
+    xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) {
         const pct = Math.round((e.loaded / e.total) * 100);
         setProgress(pct);
       }
-    };
+    });
 
-    xhr.onload = () => {
-      try {
-        const data = JSON.parse(xhr.responseText);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          setResult(data);
-          setStatus("success");
-          setProgress(100);
-        } else {
-          setErrorMsg(
-            data?.message ||
-              data?.error ||
-              `Error ${xhr.status}: ${xhr.statusText}`
-          );
-          setStatus("error");
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        let data = {};
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {
+          data = { mensaje: "Archivo procesado correctamente." };
         }
-      } catch {
-        setErrorMsg(`Error ${xhr.status}: Respuesta inesperada del servidor.`);
+        setResult(data);
+        setStatus("success");
+        setProgress(100);
+      } else {
+        let msg = `Error ${xhr.status}`;
+        try {
+          const data = JSON.parse(xhr.responseText);
+          msg = data?.mensaje || data?.error || data?.message || msg;
+        } catch {}
+        setError(msg);
         setStatus("error");
       }
-    };
+    });
 
-    xhr.onerror = () => {
-      setErrorMsg("Error de red. Verifica tu conexión e intenta nuevamente.");
+    xhr.addEventListener("error", () => {
+      setError("Error de red. Verifica tu conexión e intenta nuevamente.");
       setStatus("error");
-    };
+    });
 
-    xhr.ontimeout = () => {
-      setErrorMsg("La solicitud expiró. Intenta con un archivo más pequeño.");
+    xhr.addEventListener("abort", () => {
+      setError("Carga cancelada.");
       setStatus("error");
-    };
+    });
 
-    xhr.timeout = 120000;
+    xhr.open("POST", UPLOAD_URL);
+    xhr.setRequestHeader("x-factory-key", "factory2026");
     xhr.send(formData);
   }, [selectedFile]);
 
-  const handleClear = useCallback(() => {
-    if (xhrRef.current && status === "uploading") {
+  const handleCancel = useCallback(() => {
+    if (xhrRef.current) {
       xhrRef.current.abort();
+      xhrRef.current = null;
     }
-    setStatus("idle");
+  }, []);
+
+  const handleClear = useCallback(() => {
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+      xhrRef.current = null;
+    }
     setSelectedFile(null);
+    setStatus("idle");
     setProgress(0);
     setResult(null);
-    setErrorMsg("");
-    setDragError("");
-  }, [status]);
+    setError(null);
+    setDragging(false);
+    dragCounter.current = 0;
+  }, []);
 
   const isUploading = status === "uploading";
-  const isDragging = status === "dragging";
+  const isSuccess = status === "success";
+  const isError = status === "error";
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] px-4 py-8 md:py-12">
-      <div className="max-w-2xl mx-auto">
-
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-[#6C63FF]/20">
-              <CloudUpload className="w-6 h-6 text-[#6C63FF]" />
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              Importar Datos
-            </h1>
+    <div className="min-h-screen bg-[#0A0A0F] text-white px-4 py-8 md:px-8 md:py-12">
+      {/* Header */}
+      <div className="max-w-3xl mx-auto mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-xl bg-[#6C63FF]/20 border border-[#6C63FF]/30">
+            <CloudUpload className="w-6 h-6 text-[#6C63FF]" />
           </div>
-          <p className="text-gray-400 text-sm md:text-base ml-1">
-            Sube archivos para procesarlos e insertarlos en el sistema.
-          </p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Importar Datos
+          </h1>
         </div>
+        <p className="text-gray-400 text-sm md:text-base ml-1">
+          Carga archivos mediante drag &amp; drop o selección manual. Formatos
+          permitidos:{" "}
+          <span className="text-[#00D4AA] font-medium">
+            XLSX, XLS, CSV, PDF, PNG, JPG
+          </span>
+        </p>
+      </div>
 
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Drop Zone */}
         <div
-          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
           onDrop={handleDrop}
-          onClick={() => !isUploading && fileInputRef.current?.click()}
+          onClick={() => !isUploading && inputRef.current?.click()}
           className={`
             relative rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer
-            flex flex-col items-center justify-center gap-4 p-10 md:p-16 mb-4
-            ${isDragging
-              ? "border-[#6C63FF] bg-[#6C63FF]/10 scale-[1.01]"
-              : "border-[#2a2a4a] bg-[#1A1A2E]/60 hover:border-[#6C63FF]/60 hover:bg-[#1A1A2E]"
+            flex flex-col items-center justify-center text-center
+            min-h-[220px] md:min-h-[280px] p-8 select-none
+            ${
+              dragging
+                ? "border-[#6C63FF] bg-[#6C63FF]/10 scale-[1.01] shadow-lg shadow-[#6C63FF]/20"
+                : isSuccess
+                ? "border-[#00D4AA]/50 bg-[#00D4AA]/5"
+                : isError
+                ? "border-red-500/50 bg-red-500/5"
+                : "border-[#1A1A2E] bg-[#1A1A2E]/40 hover:border-[#6C63FF]/50 hover:bg-[#6C63FF]/5"
             }
-            ${isUploading ? "pointer-events-none opacity-70" : ""}
+            ${isUploading ? "pointer-events-none" : ""}
           `}
         >
           <input
-            ref={fileInputRef}
+            ref={inputRef}
             type="file"
-            accept={ACCEPTED_TYPES.join(",")}
-            className="hidden"
+            accept={ACCEPTED_EXTENSIONS.join(",")}
             onChange={handleInputChange}
+            className="hidden"
             disabled={isUploading}
           />
 
-          {/* Animated icon */}
-          <div
-            className={`p-5 rounded-full transition-all duration-300 ${
-              isDragging
-                ? "bg-[#6C63FF]/30 scale-110"
-                : "bg-[#1A1A2E] border border-[#2a2a4a]"
-            }`}
-          >
-            <Upload
-              className={`w-10 h-10 transition-colors duration-300 ${
-                isDragging ? "text-[#6C63FF]" : "text-gray-500"
-              }`}
-            />
-          </div>
-
-          <div className="text-center">
-            <p className="text-white font-semibold text-base md:text-lg mb-1">
-              {isDragging
-                ? "Suelta el archivo aquí"
-                : "Arrastra y suelta tu archivo"}
-            </p>
-            <p className="text-gray-400 text-sm">
-              o{" "}
-              <span className="text-[#6C63FF] font-medium underline underline-offset-2">
-                selecciona desde tu dispositivo
-              </span>
-            </p>
-          </div>
-
-          {/* Accepted formats */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {[".xlsx", ".xls", ".csv", ".pdf", ".png", ".jpg"].map((ext) => (
-              <span
-                key={ext}
-                className="px-2 py-0.5 rounded-md bg-[#0A0A0F] border border-[#2a2a4a] text-gray-400 text-xs font-mono"
+          {!selectedFile ? (
+            <>
+              <div
+                className={`
+                  p-5 rounded-full mb-4 transition-all duration-300
+                  ${
+                    dragging
+                      ? "bg-[#6C63FF]/30 scale-110"
+                      : "bg-[#1A1A2E] border border-[#6C63FF]/20"
+                  }
+                `}
               >
-                {ext}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Drag error */}
-        {dragError && (
-          <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <p className="text-red-400 text-sm">{dragError}</p>
-          </div>
-        )}
-
-        {/* Selected file card */}
-        {selectedFile && (
-          <div className="mb-4 rounded-2xl bg-[#1A1A2E] border border-[#2a2a4a] p-4">
-            <div className="flex items-center gap-4">
-              <div className="p-2 rounded-xl bg-[#0A0A0F] border border-[#2a2a4a] shrink-0">
+                <Upload
+                  className={`w-10 h-10 transition-colors duration-300 ${
+                    dragging ? "text-[#6C63FF]" : "text-gray-500"
+                  }`}
+                />
+              </div>
+              <p className="text-lg font-semibold text-gray-200 mb-1">
+                {dragging
+                  ? "Suelta el archivo aquí"
+                  : "Arrastra y suelta tu archivo"}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                o haz clic para seleccionar desde tu dispositivo
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {ACCEPTED_EXTENSIONS.map((ext) => (
+                  <span
+                    key={ext}
+                    className="px-2.5 py-1 rounded-lg bg-[#0A0A0F] border border-[#1A1A2E] text-xs text-gray-400 font-mono"
+                  >
+                    {ext}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-3 w-full max-w-sm">
+              <div className="p-4 rounded-2xl bg-[#0A0A0F] border border-[#1A1A2E]">
                 {getFileIcon(selectedFile)}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium text-sm truncate">
+              <div className="text-center">
+                <p className="font-semibold text-white text-base break-all leading-tight">
                   {selectedFile.name}
                 </p>
-                <p className="text-gray-400 text-xs mt-0.5">
-                  {formatBytes(selectedFile.size)}
+                <p className="text-sm text-gray-400 mt-1">
+                  <span className="text-[#00D4AA] font-medium">
+                    {getFileTypeLabel(selectedFile)}
+                  </span>{" "}
+                  · {formatBytes(selectedFile.size)}
                 </p>
               </div>
-              {!isUploading && status !== "success" && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClear();
-                  }}
-                  className="p-2 rounded-lg hover:bg-[#0A0A0F] text-gray-500 hover:text-red-400 transition-colors"
-                  title="Quitar archivo"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              {!isUploading && !isSuccess && (
+                <p className="text-xs text-gray-500">
+                  Haz clic para cambiar el archivo
+                </p>
               )}
             </div>
+          )}
+        </div>
 
-            {/* Progress bar */}
-            {(isUploading || status === "success") && (
-              <div className="mt-4">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs text-gray-400">
-                    {isUploading ? "Subiendo..." : "Completado"}
-                  </span>
-                  <span className="text-xs font-mono text-[#00D4AA]">
-                    {progress}%
-                  </span>
-                </div>
-                <div className="h-1.5 bg-[#0A0A0F] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${progress}%`,
-                      background:
-                        status === "success"
-                          ? "linear-gradient(90deg, #00D4AA, #6C63FF)"
-                          : "linear-gradient(90deg, #6C63FF, #00D4AA)",
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Action buttons */}
-        {selectedFile && status !== "success" && (
-          <div className="flex gap-3 mb-6">
-            <button
-              onClick={handleUpload}
-              disabled={isUploading || !selectedFile}
-              className={`
-                flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200
-                ${isUploading
-                  ? "bg-[#6C63FF]/50 text-white/60 cursor-not-allowed"
-                  : "bg-[#6C63FF] hover:bg-[#5a52e0] text-white shadow-lg shadow-[#6C63FF]/20 active:scale-[0.98]"
-                }
-              `}
-            >
-              {isUploading ? (
-                <>
-                  <svg
-                    className="animate-spin w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8H4z"
-                    />
-                  </svg>
-                  Subiendo...
-                </>
-              ) : (
-                <>
-                  <CloudUpload className="w-4 h-4" />
-                  Subir archivo
-                </>
-              )}
-            </button>
-
-            {!isUploading && (
-              <button
-                onClick={handleClear}
-                className="py-3 px-4 rounded-xl border border-[#2a2a4a] text-gray-400 hover:text-white hover:border-[#6C63FF]/40 hover:bg-[#1A1A2E] transition-all duration-200"
-                title="Limpiar"
+        {/* Progress Bar */}
+        {(isUploading || isSuccess) && (
+          <div className="rounded-xl bg-[#1A1A2E] border border-[#6C63FF]/20 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-300">
+                {isUploading ? "Subiendo archivo..." : "¡Carga completada!"}
+              </span>
+              <span
+                className={`text-sm font-bold ${
+                  isSuccess ? "text-[#00D4AA]" : "text-[#6C63FF]"
+                }`}
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Success result */}
-        {status === "success" && result && (
-          <div className="rounded-2xl bg-[#1A1A2E] border border-[#00D4AA]/30 overflow-hidden mb-4">
-            {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-4 bg-[#00D4AA]/10 border-b border-[#00D4AA]/20">
-              <CheckCircle className="w-5 h-5 text-[#00D4AA]" />
-              <span className="text-[#00D4AA] font-semibold text-sm">
-                Archivo procesado exitosamente
+                {progress}%
               </span>
             </div>
+            <div className="w-full bg-[#0A0A0F] rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  isSuccess
+                    ? "bg-gradient-to-r from-[#00D4AA] to-[#6C63FF]"
+                    : "bg-gradient-to-r from-[#6C63FF] to-[#00D4AA]"
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            {isUploading && (
+              <p className="text-xs text-gray-500 mt-2">
+                {selectedFile?.name} · {formatBytes(selectedFile?.size || 0)}
+              </p>
+            )}
+          </div>
+        )}
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#2a2a4a]">
-              {result.tabla !== undefined && (
-                <div className="flex flex-col items-center gap-1 px-4 py-5">
-                  <Table2 className="w-5 h-5 text-[#6C63FF] mb-1" />
-                  <span className="text-xs text-gray-400 uppercase tracking-wider">
-                    Tabla
-                  </span>
-                  <span className="text-white font-bold text-sm text-center break-all">
-                    {result.tabla}
-                  </span>
-                </div>
-              )}
-
+        {/* Success Result */}
+        {isSuccess && result && (
+          <div className="rounded-xl border border-[#00D4AA]/30 bg-[#00D4AA]/5 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-[#00D4AA] flex-shrink-0" />
+              <span className="font-semibold text-[#00D4AA]">
+                Importación exitosa
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {result.filas_insertadas !== undefined && (
-                <div className="flex flex-col items-center gap-1 px-4 py-5">
-                  <Hash className="w-5 h-5 text-[#00D4AA] mb-1" />
-                  <span className="text-xs text-gray-400 uppercase tracking-wider">
-                    Filas insertadas
-                  </span>
-                  <span className="text-[#00D4AA] font-bold text-2xl">
+                <div className="rounded-lg bg-[#0A0A0F] border border-[#1A1A2E] p-3 text-center">
+                  <p className="text-2xl font-bold text-[#00D4AA]">
                     {result.filas_insertadas}
-                  </span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Filas insertadas
+                  </p>
                 </div>
               )}
-
+              {result.tabla && (
+                <div className="rounded-lg bg-[#0A0A0F] border border-[#1A1A2E] p-3 text-center">
+                  <p className="text-sm font-bold text-[#6C63FF] break-all">
+                    {result.tabla}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Tabla destino</p>
+                </div>
+              )}
               {result.errores !== undefined && (
-                <div className="flex flex-col items-center gap-1 px-4 py-5">
-                  <AlertCircle
-                    className={`w-5 h-5 mb-1 ${
-                      result.errores > 0 ? "text-yellow-400" : "text-gray-500"
-                    }`}
-                  />
-                  <span className="text-xs text-gray-400 uppercase tracking-wider">
-                    Errores
-                  </span>
-                  <span
-                    className={`font-bold text-2xl ${
-                      result.errores > 0 ? "text-yellow-400" : "text-gray-500"
+                <div className="rounded-lg bg-[#0A0A0F] border border-[#1A1A2E] p-3 text-center">
+                  <p
+                    className={`text-2xl font-bold ${
+                      result.errores > 0 ? "text-yellow-400" : "text-gray-400"
                     }`}
                   >
                     {result.errores}
-                  </span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Errores</p>
                 </div>
               )}
             </div>
-
-            {/* Extra fields */}
+            {result.mensaje && (
+              <p className="text-sm text-gray-300 bg-[#0A0A0F] rounded-lg p-3 border border-[#1A1A2E]">
+                {result.mensaje}
+              </p>
+            )}
+            {/* Raw extra fields */}
             {Object.keys(result).filter(
               (k) =>
-                !["tabla", "filas_insertadas", "errores", "message"].includes(k)
+                !["filas_insertadas", "tabla", "errores", "mensaje"].includes(k)
             ).length > 0 && (
-              <div className="px-5 py-3 border-t border-[#2a2a4a]">
-                <div className="space-y-1.5">
-                  {Object.entries(result)
-                    .filter(
-                      ([k]) =>
-                        !["tabla", "filas_insertadas", "errores"].includes(k)
-                    )
-                    .map(([key, val]) => (
-                      <div
-                        key={key}
-                        className="flex justify-between items-center text-xs"
-                      >
-                        <span className="text-gray-400 capitalize">
-                          {key.replace(/_/g, " ")}
-                        </span>
-                        <span className="text-gray-200 font-mono">
-                          {String(val)}
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {result.message && (
-              <div className="px-5 pb-4">
-                <p className="text-gray-300 text-sm">{result.message}</p>
-              </div>
-            )}
-
-            {/* Clear button in success */}
-            <div className="px-5 pb-5 pt-1">
-              <button
-                onClick={handleClear}
-                className="w-full py-2.5 rounded-xl border border-[#2a2a4a] text-gray-400 hover:text-white hover:border-[#6C63FF]/40 hover:bg-[#0A0A0F] transition-all duration-200 flex items-center justify-center gap-2 text-sm"
-              >
-                <Trash2 className="w-4 h-4" />
-                Limpiar y subir otro archivo
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Error state */}
-        {status === "error" && (
-          <div className="rounded-2xl bg-[#1A1A2E] border border-red-500/30 overflow-hidden mb-4">
-            <div className="flex items-start gap-3 px-5 py-4 bg-red-500/10">
-              <XCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-red-400 font-semibold text-sm mb-1">
-                  Error al procesar el archivo
+              <div className="rounded-lg bg-[#0A0A0F] border border-[#1A1A2E] p-3">
+                <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">
+                  Detalles adicionales
                 </p>
-                <p className="text-red-300/70 text-sm">{errorMsg}</p>
+                <pre className="text-xs text-gray-300 overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                  {JSON.stringify(
+                    Object.fromEntries(
+                      Object.entries(result).filter(
+                        ([k]) =>
+                          !["filas_insertadas", "tabla", "errores", "mensaje"].includes(k)
+                      )
+                    ),
+                    null,
+                    2
+                  )}
+                </pre>
               </div>
-            </div>
-            <div className="px-5 py-4">
-              <button
-                onClick={handleClear}
-                className="w-full py-2.5 rounded-xl border border-[#2a2a4a] text-gray-400 hover:text-white hover:border-red-500/40 hover:bg-[#0A0A0F] transition-all duration-200 flex items-center justify-center gap-2 text-sm"
-              >
-                <Trash2 className="w-4 h-4" />
-                Limpiar e intentar de nuevo
-              </button>
+            )}
+          </div>
+        )}
+
+        {/* Error Result */}
+        {isError && error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-5">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-red-400 mb-1">
+                  Error al importar
+                </p>
+                <p className="text-sm text-gray-300">{error}</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Hint */}
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {selectedFile && !isUploading && !isSuccess && (
+            <button
+              onClick={handleUpload}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-white transition-all duration-200
+                bg-gradient-to-r from-[#6C63FF] to-[#5a52e0] hover:from-[#7c74ff] hover:to-[#6C63FF]
+                shadow-lg shadow-[#6C63FF]/25 hover:shadow-[#6C63FF]/40 hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <Upload className="w-5 h-5" />
+              Importar archivo
+            </button>
+          )}
+
+          {isUploading && (
+            <button
+              onClick={handleCancel}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-white transition-all duration-200
+                bg-[#1A1A2E] border border-red-500/40 hover:bg-red-500/10 hover:border-red-500/70"
+            >
+              <X className="w-5 h-5 text-red-400" />
+              <Loader2 className="w-4 h-4 text-[#6C63FF] animate-spin" />
+              Cancelar carga
+            </button>
+          )}
+
+          {(selectedFile || isSuccess || isError) && (
+            <button
+              onClick={handleClear}
+              disabled={isUploading}
+              className={`
+                flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all duration-200
+                border border-[#1A1A2E] text-gray-400 hover:text-white hover:border-red-500/40 hover:bg-red-500/5
+                ${isUploading ? "opacity-40 cursor-not-allowed" : ""}
+                ${!selectedFile && !isSuccess && !isError ? "hidden" : ""}
+              `}
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        {/* Instructions */}
         {status === "idle" && !selectedFile && (
-          <p className="text-center text-gray-600 text-xs mt-2">
-            Tamaño máximo recomendado: 50 MB · Procesado en el servidor
-          </p>
+          <div className="rounded-xl bg-[#1A1A2E]/50 border border-[#1A1A2E] p-5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Instrucciones
+            </p>
+            <ul className="space-y-2">
+              {[
+                "Arrastra un archivo al área de carga o haz clic para seleccionarlo.",
+                "Se aceptan archivos Excel (.xlsx, .xls), CSV, PDF e imágenes (.png, .jpg).",
+                "Una vez seleccionado, pulsa «Importar archivo» para iniciar la carga.",
+                "Podrás ver el progreso en tiempo real y el resultado al finalizar.",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-400">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#6C63FF]/20 border border-[#6C63FF]/30 text-[#6C63FF] text-xs flex items-center justify-center font-bold mt-0.5">
+                    {i + 1}
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>
