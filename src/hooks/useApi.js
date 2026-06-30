@@ -1,89 +1,68 @@
 import { useState, useCallback } from 'react'
 
-const API_BASE = 'https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api'
+const BASE_URL = 'https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api'
 const FACTORY_KEY = 'factory2026'
 
-const buildHeaders = (customHeaders = {}) => ({
+const buildHeaders = (extra = {}) => ({
   'Content-Type': 'application/json',
   'x-factory-key': FACTORY_KEY,
-  ...customHeaders
+  ...extra
 })
 
-export const fetchApi = async (endpoint, options = {}) => {
-  const { headers: customHeaders, body, ...restOptions } = options
+export async function fetchApi(endpoint, options = {}) {
+  const { headers: extraHeaders, body, ...rest } = options
 
   const config = {
-    ...restOptions,
-    headers: buildHeaders(customHeaders),
-    ...(body && { body: typeof body === 'string' ? body : JSON.stringify(body) })
+    ...rest,
+    headers: buildHeaders(extraHeaders),
+    ...(body !== undefined && { body: JSON.stringify(body) })
   }
 
-  const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
-
-  const response = await fetch(url, config)
+  const response = await fetch(`${BASE_URL}${endpoint}`, config)
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }))
-    const error = new Error(errorData.message || `HTTP error ${response.status}`)
-    error.status = response.status
-    error.data = errorData
-    throw error
+    throw new Error(errorData.message || `HTTP error ${response.status}`)
   }
 
-  const contentType = response.headers.get('content-type')
-  if (contentType && contentType.includes('application/json')) {
-    return response.json()
-  }
-
-  return response.text()
+  const text = await response.text()
+  return text ? JSON.parse(text) : null
 }
 
-const useApi = () => {
+export function useApi() {
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error,   setError]   = useState(null)
+  const [data,    setData]    = useState(null)
 
   const request = useCallback(async (endpoint, options = {}) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchApi(endpoint, options)
-      return { data, error: null }
+      const result = await fetchApi(endpoint, options)
+      setData(result)
+      return result
     } catch (err) {
-      const errorInfo = {
-        message: err.message,
-        status: err.status || null,
-        data: err.data || null
-      }
-      setError(errorInfo)
-      return { data: null, error: errorInfo }
+      setError(err.message)
+      throw err
     } finally {
       setLoading(false)
     }
   }, [])
 
-  const get = useCallback((endpoint, options = {}) =>
-    request(endpoint, { ...options, method: 'GET' })
-  , [request])
+  const get    = useCallback((endpoint, headers) =>
+    request(endpoint, { method: 'GET', headers }), [request])
 
-  const post = useCallback((endpoint, body, options = {}) =>
-    request(endpoint, { ...options, method: 'POST', body })
-  , [request])
+  const post   = useCallback((endpoint, body, headers) =>
+    request(endpoint, { method: 'POST', body, headers }), [request])
 
-  const put = useCallback((endpoint, body, options = {}) =>
-    request(endpoint, { ...options, method: 'PUT', body })
-  , [request])
+  const put    = useCallback((endpoint, body, headers) =>
+    request(endpoint, { method: 'PUT', body, headers }), [request])
 
-  const patch = useCallback((endpoint, body, options = {}) =>
-    request(endpoint, { ...options, method: 'PATCH', body })
-  , [request])
+  const patch  = useCallback((endpoint, body, headers) =>
+    request(endpoint, { method: 'PATCH', body, headers }), [request])
 
-  const del = useCallback((endpoint, options = {}) =>
-    request(endpoint, { ...options, method: 'DELETE' })
-  , [request])
+  const remove = useCallback((endpoint, headers) =>
+    request(endpoint, { method: 'DELETE', headers }), [request])
 
-  const clearError = useCallback(() => setError(null), [])
-
-  return { loading, error, get, post, put, patch, del, request, clearError }
+  return { data, loading, error, request, get, post, put, patch, remove }
 }
-
-export default useApi
