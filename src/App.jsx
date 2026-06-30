@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Upload,
@@ -8,125 +8,103 @@ import {
   ChevronRight,
   Menu,
   X,
+  Zap,
 } from "lucide-react";
-
 import Dashboard from "./pages/Dashboard";
 import ImportarDatos from "./pages/ImportarDatos";
 import Configuracion from "./pages/Configuracion";
 
-const navItems = [
-  {
-    path: "/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    path: "/importar-datos",
-    label: "Importar Datos",
-    icon: Upload,
-  },
-  {
-    path: "/configuracion",
-    label: "Configuración",
-    icon: Settings,
-  },
+const NAV_ITEMS = [
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { label: "Importar Datos", path: "/importar-datos", icon: Upload },
+  { label: "Configuración", path: "/configuracion", icon: Settings },
 ];
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleNav = (path) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Logo */}
       <div
-        className={`flex items-center h-16 px-4 border-b border-white/10 ${
-          collapsed ? "justify-center" : "justify-between"
+        className={`flex items-center gap-3 px-4 py-5 border-b border-white/10 ${
+          collapsed ? "justify-center" : ""
         }`}
       >
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}>
+          <Zap size={16} className="text-white" />
+        </div>
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
-            </div>
-            <span className="text-white font-semibold text-lg tracking-wide">
-              Sistema t
-            </span>
-          </div>
+          <span className="text-white font-bold text-lg tracking-tight">
+            Sistema <span style={{ color: "#6C63FF" }}>t</span>
+          </span>
         )}
-        {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center">
-            <span className="text-white font-bold text-sm">T</span>
-          </div>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex items-center justify-center w-7 h-7 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
-        >
-          {collapsed ? (
-            <ChevronRight size={16} />
-          ) : (
-            <ChevronLeft size={16} />
-          )}
-        </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ path, label, icon: Icon }) => {
-          const isActive = location.pathname === path;
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+          const active = location.pathname === path;
           return (
-            <Link
+            <button
               key={path}
-              to={path}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative ${
-                isActive
-                  ? "bg-gradient-to-r from-[#6C63FF]/20 to-[#00D4AA]/10 text-white border border-[#6C63FF]/30"
+              onClick={() => handleNav(path)}
+              title={collapsed ? label : undefined}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${
+                active
+                  ? "text-white"
                   : "text-white/50 hover:text-white hover:bg-white/5"
-              }`}
+              } ${collapsed ? "justify-center" : ""}`}
+              style={
+                active
+                  ? {
+                      background:
+                        "linear-gradient(135deg, rgba(108,99,255,0.25), rgba(0,212,170,0.15))",
+                      boxShadow: "inset 0 0 0 1px rgba(108,99,255,0.4)",
+                    }
+                  : {}
+              }
             >
-              <div
-                className={`flex-shrink-0 ${
-                  isActive ? "text-[#6C63FF]" : "text-white/50 group-hover:text-[#00D4AA]"
-                } transition-colors duration-200`}
-              >
-                <Icon size={20} />
-              </div>
-              {!collapsed && (
-                <span className="font-medium text-sm truncate">{label}</span>
+              {active && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                  style={{ background: "#6C63FF" }}
+                />
               )}
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#6C63FF] to-[#00D4AA] rounded-r-full" />
-              )}
+              <Icon
+                size={18}
+                style={active ? { color: "#6C63FF" } : {}}
+                className="flex-shrink-0"
+              />
+              {!collapsed && <span>{label}</span>}
+
+              {/* Tooltip on collapsed */}
               {collapsed && (
-                <div className="absolute left-full ml-3 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap border border-white/10 z-50 transition-opacity duration-150">
+                <span className="absolute left-full ml-3 px-2 py-1 rounded-md text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50"
+                  style={{ background: "#1A1A2E", border: "1px solid rgba(108,99,255,0.3)" }}>
                   {label}
-                </div>
+                </span>
               )}
-            </Link>
+            </button>
           );
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-white/10">
-        <div
-          className={`flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 ${
-            collapsed ? "justify-center" : ""
-          }`}
+      {/* Collapse toggle — desktop only */}
+      <div className="hidden md:flex border-t border-white/10 p-2 justify-end">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
         >
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">t</span>
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="text-white text-xs font-medium truncate">
-                Sistema t
-              </span>
-              <span className="text-white/30 text-xs truncate">v1.0.0</span>
-            </div>
-          )}
-        </div>
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
     </div>
   );
@@ -135,9 +113,10 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
     <>
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex flex-col flex-shrink-0 bg-[#0D0D16] border-r border-white/10 transition-all duration-300 ease-in-out ${
-          collapsed ? "w-16" : "w-60"
+        className={`hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0 transition-all duration-300 border-r border-white/10 ${
+          collapsed ? "w-16" : "w-56"
         }`}
+        style={{ background: "#1A1A2E" }}
       >
         <SidebarContent />
       </aside>
@@ -145,53 +124,70 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 z-40 md:hidden"
+          style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-[#0D0D16] border-r border-white/10 z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 left-0 h-full z-50 w-64 flex flex-col md:hidden transition-transform duration-300 border-r border-white/10 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{ background: "#1A1A2E" }}
       >
+        {/* Mobile close */}
+        <div className="absolute top-4 right-3">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
         <SidebarContent />
       </aside>
     </>
   );
 }
 
-function Topbar({ mobileOpen, setMobileOpen }) {
+function TopBar({ setMobileOpen }) {
   const location = useLocation();
-  const currentPage = navItems.find((n) => n.path === location.pathname);
+  const currentPage = NAV_ITEMS.find((i) => i.path === location.pathname);
 
   return (
-    <header className="h-16 flex items-center px-4 md:px-6 border-b border-white/10 bg-[#0A0A0F]/80 backdrop-blur-md flex-shrink-0">
+    <header
+      className="flex-shrink-0 h-14 flex items-center gap-4 px-4 md:px-6 border-b border-white/10"
+      style={{ background: "rgba(26,26,46,0.6)", backdropFilter: "blur(12px)" }}
+    >
+      {/* Hamburger mobile */}
       <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 mr-3"
+        className="md:hidden w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+        onClick={() => setMobileOpen(true)}
       >
-        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        <Menu size={20} />
       </button>
 
       <div className="flex items-center gap-2">
         {currentPage && (
-          <>
-            <currentPage.icon size={18} className="text-[#6C63FF]" />
-            <h1 className="text-white font-semibold text-base md:text-lg">
-              {currentPage.label}
-            </h1>
-          </>
+          <currentPage.icon size={16} style={{ color: "#6C63FF" }} />
         )}
+        <span className="text-white/80 text-sm font-medium">
+          {currentPage?.label ?? ""}
+        </span>
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/20">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-pulse" />
-          <span className="text-[#00D4AA] text-xs font-medium hidden sm:block">
-            Conectado
-          </span>
+        <div
+          className="text-xs px-2 py-1 rounded-full font-medium"
+          style={{
+            background: "rgba(0,212,170,0.15)",
+            color: "#00D4AA",
+            border: "1px solid rgba(0,212,170,0.3)",
+          }}
+        >
+          Sistema t
         </div>
       </div>
     </header>
@@ -203,7 +199,10 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#0A0A0F] text-white overflow-hidden">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: "#0A0A0F", color: "#ffffff" }}
+    >
       <Sidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -212,18 +211,16 @@ export default function App() {
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Topbar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <TopBar setMobileOpen={setMobileOpen} />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="min-h-full p-4 md:p-6">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/importar-datos" element={<ImportarDatos />} />
-              <Route path="/configuracion" element={<Configuracion />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/importar-datos" element={<ImportarDatos />} />
+            <Route path="/configuracion" element={<Configuracion />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
       </div>
     </div>
