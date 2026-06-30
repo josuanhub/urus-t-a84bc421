@@ -1,178 +1,143 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
-import {
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Info,
-  X,
-} from "lucide-react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
 const TOAST_TYPES = {
   success: {
     icon: CheckCircle,
-    bg: "bg-[#0A0A0F]",
-    border: "border-[#00D4AA]",
-    iconColor: "text-[#00D4AA]",
-    bar: "bg-[#00D4AA]",
-    label: "Éxito",
+    bg: 'bg-[#0A0A0F]',
+    border: 'border-[#00D4AA]',
+    iconColor: 'text-[#00D4AA]',
+    title: 'Éxito',
+    glow: 'shadow-[0_0_20px_rgba(0,212,170,0.15)]',
   },
   error: {
     icon: XCircle,
-    bg: "bg-[#0A0A0F]",
-    border: "border-red-500",
-    iconColor: "text-red-500",
-    bar: "bg-red-500",
-    label: "Error",
-  },
-  warning: {
-    icon: AlertCircle,
-    bg: "bg-[#0A0A0F]",
-    border: "border-yellow-400",
-    iconColor: "text-yellow-400",
-    bar: "bg-yellow-400",
-    label: "Aviso",
+    bg: 'bg-[#0A0A0F]',
+    border: 'border-red-500',
+    iconColor: 'text-red-500',
+    title: 'Error',
+    glow: 'shadow-[0_0_20px_rgba(239,68,68,0.15)]',
   },
   info: {
     icon: Info,
-    bg: "bg-[#0A0A0F]",
-    border: "border-[#6C63FF]",
-    iconColor: "text-[#6C63FF]",
-    bar: "bg-[#6C63FF]",
-    label: "Info",
+    bg: 'bg-[#0A0A0F]',
+    border: 'border-[#6C63FF]',
+    iconColor: 'text-[#6C63FF]',
+    title: 'Información',
+    glow: 'shadow-[0_0_20px_rgba(108,99,255,0.15)]',
+  },
+  warning: {
+    icon: AlertTriangle,
+    bg: 'bg-[#0A0A0F]',
+    border: 'border-yellow-400',
+    iconColor: 'text-yellow-400',
+    title: 'Advertencia',
+    glow: 'shadow-[0_0_20px_rgba(250,204,21,0.15)]',
   },
 };
 
 const AUTO_DISMISS_MS = 4000;
 const MAX_TOASTS = 3;
 
-let toastCounter = 0;
+let toastIdCounter = 0;
 
 function ToastItem({ toast, onRemove }) {
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [progress, setProgress] = useState(100);
   const timerRef = useRef(null);
-  const progressRef = useRef(null);
-  const startTimeRef = useRef(null);
-  const remainingRef = useRef(AUTO_DISMISS_MS);
-
   const config = TOAST_TYPES[toast.type] || TOAST_TYPES.info;
   const Icon = config.icon;
 
-  const startDismiss = useCallback(() => {
-    startTimeRef.current = Date.now();
-
-    timerRef.current = setTimeout(() => {
-      setLeaving(true);
-      setTimeout(() => onRemove(toast.id), 350);
-    }, remainingRef.current);
-
-    progressRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
-      const pct = Math.max(
-        0,
-        ((remainingRef.current - elapsed) / AUTO_DISMISS_MS) * 100
-      );
-      setProgress(pct);
-    }, 30);
-  }, [toast.id, onRemove]);
-
-  const pauseDismiss = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      clearInterval(progressRef.current);
-      remainingRef.current -= Date.now() - startTimeRef.current;
-    }
-  }, []);
+  const dismiss = useCallback(() => {
+    if (leaving) return;
+    setLeaving(true);
+    clearTimeout(timerRef.current);
+    setTimeout(() => {
+      onRemove(toast.id);
+    }, 350);
+  }, [leaving, onRemove, toast.id]);
 
   useEffect(() => {
-    const enterTimer = requestAnimationFrame(() => {
-      setTimeout(() => setVisible(true), 20);
-    });
-    startDismiss();
+    const enterTimer = setTimeout(() => setVisible(true), 10);
+    timerRef.current = setTimeout(dismiss, AUTO_DISMISS_MS);
     return () => {
-      cancelAnimationFrame(enterTimer);
+      clearTimeout(enterTimer);
       clearTimeout(timerRef.current);
-      clearInterval(progressRef.current);
     };
-  }, [startDismiss]);
+  }, []);
 
-  const handleClose = () => {
-    clearTimeout(timerRef.current);
-    clearInterval(progressRef.current);
-    setLeaving(true);
-    setTimeout(() => onRemove(toast.id), 350);
-  };
+  const progressDuration = `${AUTO_DISMISS_MS}ms`;
 
   return (
     <div
-      onMouseEnter={pauseDismiss}
-      onMouseLeave={startDismiss}
-      className={`
-        relative w-full max-w-sm overflow-hidden rounded-xl border
-        ${config.bg} ${config.border}
-        shadow-2xl shadow-black/60
-        transition-all duration-350 ease-in-out
-        ${visible && !leaving
-          ? "opacity-100 translate-x-0 scale-100"
-          : leaving
-          ? "opacity-0 translate-x-8 scale-95"
-          : "opacity-0 translate-x-8 scale-95"
-        }
-      `}
-      style={{ transitionDuration: "350ms" }}
       role="alert"
       aria-live="assertive"
+      className={`
+        relative flex items-start gap-3 w-full max-w-sm
+        ${config.bg} border ${config.border} ${config.glow}
+        rounded-xl p-4 overflow-hidden
+        transition-all duration-350 ease-out
+        ${visible && !leaving
+          ? 'opacity-100 translate-x-0 scale-100'
+          : leaving
+          ? 'opacity-0 translate-x-8 scale-95'
+          : 'opacity-0 translate-x-8 scale-95'
+        }
+      `}
+      style={{ transition: 'opacity 350ms ease, transform 350ms ease' }}
     >
-      {/* Glassmorphism inner */}
-      <div className="absolute inset-0 bg-[#1A1A2E]/60 rounded-xl pointer-events-none" />
-
-      <div className="relative flex items-start gap-3 px-4 pt-4 pb-5">
-        {/* Icon */}
-        <div className={`mt-0.5 shrink-0 ${config.iconColor}`}>
-          <Icon size={20} strokeWidth={2.2} />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {toast.title && (
-            <p className="text-sm font-semibold text-white leading-tight mb-0.5">
-              {toast.title}
-            </p>
-          )}
-          {toast.message && (
-            <p className="text-xs text-white/70 leading-relaxed break-words">
-              {toast.message}
-            </p>
-          )}
-        </div>
-
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="shrink-0 mt-0.5 p-1 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors duration-150"
-          aria-label="Cerrar notificación"
-        >
-          <X size={14} strokeWidth={2.5} />
-        </button>
-      </div>
-
       {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10 rounded-b-xl overflow-hidden">
+      <div className="absolute bottom-0 left-0 h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
         <div
-          className={`h-full ${config.bar} transition-none rounded-b-xl`}
-          style={{ width: `${progress}%` }}
+          className={`h-full ${config.border.replace('border-', 'bg-')}`}
+          style={{
+            animation: `shrink ${progressDuration} linear forwards`,
+          }}
         />
       </div>
+
+      {/* Icon */}
+      <div className="flex-shrink-0 mt-0.5">
+        <Icon size={20} className={config.iconColor} strokeWidth={2} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        {toast.title && (
+          <p className="text-sm font-semibold text-white leading-tight mb-0.5">
+            {toast.title}
+          </p>
+        )}
+        {toast.message && (
+          <p className="text-xs text-white/60 leading-relaxed break-words">
+            {toast.message}
+          </p>
+        )}
+      </div>
+
+      {/* Close button */}
+      <button
+        onClick={dismiss}
+        aria-label="Cerrar notificación"
+        className="
+          flex-shrink-0 mt-0.5 p-1 rounded-lg
+          text-white/30 hover:text-white/70
+          hover:bg-white/10
+          transition-colors duration-150
+          focus:outline-none focus:ring-1 focus:ring-white/20
+        "
+      >
+        <X size={14} strokeWidth={2.5} />
+      </button>
+
+      <style>{`
+        @keyframes shrink {
+          from { width: 100%; }
+          to   { width: 0%; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -180,54 +145,50 @@ function ToastItem({ toast, onRemove }) {
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
+  const addToast = useCallback(({ type = 'info', title, message }) => {
+    setToasts((prev) => {
+      const limited = prev.length >= MAX_TOASTS ? prev.slice(prev.length - MAX_TOASTS + 1) : prev;
+      return [
+        ...limited,
+        { id: ++toastIdCounter, type, title, message },
+      ];
+    });
+  }, []);
+
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback(({ type = "info", title, message }) => {
-    const id = ++toastCounter;
-    setToasts((prev) => {
-      const next = [...prev, { id, type, title, message }];
-      return next.length > MAX_TOASTS ? next.slice(next.length - MAX_TOASTS) : next;
-    });
-    return id;
-  }, []);
-
   const toast = useCallback(
-    {
-      success: (msg, title) => addToast({ type: "success", message: msg, title }),
-      error: (msg, title) => addToast({ type: "error", message: msg, title }),
-      warning: (msg, title) => addToast({ type: "warning", message: msg, title }),
-      info: (msg, title) => addToast({ type: "info", message: msg, title }),
-      show: (opts) => addToast(opts),
+    (message, type = 'info', title) => {
+      addToast({ type, title: title || TOAST_TYPES[type]?.title, message });
     },
     [addToast]
   );
 
-  // Wrap all methods into a single stable object
-  const api = React.useMemo(
-    () => ({
-      success: (msg, title) => addToast({ type: "success", message: msg, title }),
-      error: (msg, title) => addToast({ type: "error", message: msg, title }),
-      warning: (msg, title) => addToast({ type: "warning", message: msg, title }),
-      info: (msg, title) => addToast({ type: "info", message: msg, title }),
-      show: (opts) => addToast(opts),
-      remove: removeToast,
-    }),
-    [addToast, removeToast]
-  );
+  toast.success = (message, title) => addToast({ type: 'success', title: title || TOAST_TYPES.success.title, message });
+  toast.error   = (message, title) => addToast({ type: 'error',   title: title || TOAST_TYPES.error.title,   message });
+  toast.info    = (message, title) => addToast({ type: 'info',    title: title || TOAST_TYPES.info.title,    message });
+  toast.warning = (message, title) => addToast({ type: 'warning', title: title || TOAST_TYPES.warning.title, message });
 
   return (
-    <ToastContext.Provider value={api}>
+    <ToastContext.Provider value={{ toast, addToast, removeToast }}>
       {children}
 
-      {/* Portal-like container */}
+      {/* Toast container — bottom-right */}
       <div
         aria-label="Notificaciones"
-        className="fixed bottom-4 right-4 z-[9999] flex flex-col-reverse gap-3 w-[calc(100vw-2rem)] max-w-sm pointer-events-none"
+        className="
+          fixed z-[9999]
+          bottom-4 right-4
+          sm:bottom-6 sm:right-6
+          flex flex-col-reverse gap-3
+          w-[calc(100vw-2rem)] max-w-sm
+          pointer-events-none
+        "
       >
         {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto w-full">
+          <div key={t.id} className="pointer-events-auto">
             <ToastItem toast={t} onRemove={removeToast} />
           </div>
         ))}
@@ -239,9 +200,9 @@ export function ToastProvider({ children }) {
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    throw new Error("useToast debe usarse dentro de <ToastProvider>");
+    throw new Error('useToast debe usarse dentro de <ToastProvider>');
   }
-  return ctx;
+  return ctx.toast;
 }
 
 export default ToastProvider;
