@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
   Upload,
@@ -14,198 +14,185 @@ import Dashboard from "./pages/Dashboard";
 import ImportarDatos from "./pages/ImportarDatos";
 import Configuracion from "./pages/Configuracion";
 
-const NAV_ITEMS = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/importar-datos", label: "Importar Datos", icon: Upload },
-  { path: "/configuracion", label: "Configuración", icon: Settings },
+const navItems = [
+  {
+    path: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    path: "/importar-datos",
+    label: "Importar Datos",
+    icon: Upload,
+  },
+  {
+    path: "/configuracion",
+    label: "Configuración",
+    icon: Settings,
+  },
 ];
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleNav = (path) => {
-    navigate(path);
-    setMobileOpen(false);
-  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo / Header */}
+      {/* Header */}
       <div
-        className={`flex items-center gap-3 px-4 py-5 border-b border-white/10 ${
+        className={`flex items-center h-16 px-4 border-b border-white/10 ${
           collapsed ? "justify-center" : "justify-between"
         }`}
       >
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center">
               <span className="text-white font-bold text-sm">T</span>
             </div>
-            <span className="text-white font-semibold text-base tracking-wide">
+            <span className="text-white font-semibold text-lg tracking-wide">
               Sistema t
             </span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center">
             <span className="text-white font-bold text-sm">T</span>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
+          className="hidden md:flex items-center justify-center w-7 h-7 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? (
+            <ChevronRight size={16} />
+          ) : (
+            <ChevronLeft size={16} />
+          )}
         </button>
       </div>
 
-      {/* Nav Items */}
+      {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+        {navItems.map(({ path, label, icon: Icon }) => {
           const isActive = location.pathname === path;
           return (
-            <button
+            <Link
               key={path}
-              onClick={() => handleNav(path)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+              to={path}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative ${
                 isActive
-                  ? "text-white"
+                  ? "bg-gradient-to-r from-[#6C63FF]/20 to-[#00D4AA]/10 text-white border border-[#6C63FF]/30"
                   : "text-white/50 hover:text-white hover:bg-white/5"
-              } ${collapsed ? "justify-center" : ""}`}
-              style={
-                isActive
-                  ? {
-                      background:
-                        "linear-gradient(135deg, rgba(108,99,255,0.25), rgba(0,212,170,0.15))",
-                      boxShadow: "inset 0 0 0 1px rgba(108,99,255,0.4)",
-                    }
-                  : {}
-              }
-              title={collapsed ? label : undefined}
+              }`}
             >
-              <Icon
-                size={18}
-                className={`flex-shrink-0 transition-colors duration-200 ${
-                  isActive ? "text-[#6C63FF]" : "text-white/40 group-hover:text-white/70"
-                }`}
-              />
+              <div
+                className={`flex-shrink-0 ${
+                  isActive ? "text-[#6C63FF]" : "text-white/50 group-hover:text-[#00D4AA]"
+                } transition-colors duration-200`}
+              >
+                <Icon size={20} />
+              </div>
               {!collapsed && (
-                <span className="truncate">{label}</span>
+                <span className="font-medium text-sm truncate">{label}</span>
               )}
-              {isActive && !collapsed && (
-                <span
-                  className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: "#00D4AA" }}
-                />
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#6C63FF] to-[#00D4AA] rounded-r-full" />
               )}
-            </button>
+              {collapsed && (
+                <div className="absolute left-full ml-3 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap border border-white/10 z-50 transition-opacity duration-150">
+                  {label}
+                </div>
+              )}
+            </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-white/10">
-        {!collapsed ? (
-          <div className="px-3 py-2 rounded-xl bg-white/5">
-            <p className="text-white/30 text-xs">API conectada</p>
-            <p className="text-[#00D4AA] text-xs font-medium mt-0.5 truncate">
-              urusverify.com
-            </p>
+        <div
+          className={`flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#00D4AA] flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs font-bold">t</span>
           </div>
-        ) : (
-          <div className="flex justify-center">
-            <div
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: "#00D4AA" }}
-            />
-          </div>
-        )}
+          {!collapsed && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-white text-xs font-medium truncate">
+                Sistema t
+              </span>
+              <span className="text-white/30 text-xs truncate">v1.0.0</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 
   return (
     <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden md:flex flex-col flex-shrink-0 bg-[#0D0D16] border-r border-white/10 transition-all duration-300 ease-in-out ${
+          collapsed ? "w-16" : "w-60"
+        }`}
+      >
+        <SidebarContent />
+      </aside>
+
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile Drawer */}
-      <div
-        className={`fixed top-0 left-0 h-full z-50 lg:hidden transition-transform duration-300 ease-in-out ${
+      {/* Mobile Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-64 bg-[#0D0D16] border-r border-white/10 z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: "260px", backgroundColor: "#1A1A2E", borderRight: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="text-white/50 hover:text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <SidebarContent />
-      </div>
-
-      {/* Desktop Sidebar */}
-      <div
-        className={`hidden lg:flex flex-col flex-shrink-0 h-full transition-all duration-300 ease-in-out`}
-        style={{
-          width: collapsed ? "72px" : "240px",
-          backgroundColor: "#1A1A2E",
-          borderRight: "1px solid rgba(255,255,255,0.08)",
-        }}
       >
         <SidebarContent />
-      </div>
+      </aside>
     </>
   );
 }
 
-function TopBar({ setMobileOpen }) {
+function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
-
-  const currentItem = NAV_ITEMS.find((item) => item.pathname === location.pathname) ||
-    NAV_ITEMS.find((item) => location.pathname.startsWith(item.path));
+  const currentPage = navItems.find((n) => n.path === location.pathname);
 
   return (
-    <header
-      className="flex items-center gap-4 px-4 sm:px-6 py-4 border-b border-white/10 flex-shrink-0"
-      style={{ backgroundColor: "rgba(26,26,46,0.5)", backdropFilter: "blur(12px)" }}
-    >
+    <header className="h-16 flex items-center px-4 md:px-6 border-b border-white/10 bg-[#0A0A0F]/80 backdrop-blur-md flex-shrink-0">
       <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden text-white/50 hover:text-white transition-colors"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 mr-3"
       >
-        <Menu size={22} />
+        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
-      <div className="flex-1">
-        <h1 className="text-white font-semibold text-lg">
-          {currentItem?.label || "Sistema t"}
-        </h1>
-        <p className="text-white/30 text-xs mt-0.5">
-          {new Date().toLocaleDateString("es-ES", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
-      </div>
+
       <div className="flex items-center gap-2">
-        <div
-          className="w-2 h-2 rounded-full animate-pulse"
-          style={{ backgroundColor: "#00D4AA" }}
-        />
-        <span className="text-white/30 text-xs hidden sm:block">En línea</span>
+        {currentPage && (
+          <>
+            <currentPage.icon size={18} className="text-[#6C63FF]" />
+            <h1 className="text-white font-semibold text-base md:text-lg">
+              {currentPage.label}
+            </h1>
+          </>
+        )}
+      </div>
+
+      <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/20">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-pulse" />
+          <span className="text-[#00D4AA] text-xs font-medium hidden sm:block">
+            Conectado
+          </span>
+        </div>
       </div>
     </header>
   );
@@ -216,11 +203,7 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div
-      className="flex h-screen w-screen overflow-hidden"
-      style={{ backgroundColor: "#0A0A0F", fontFamily: "'Inter', sans-serif" }}
-    >
-      {/* Sidebar */}
+    <div className="flex h-screen bg-[#0A0A0F] text-white overflow-hidden">
       <Sidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -228,13 +211,13 @@ export default function App() {
         setMobileOpen={setMobileOpen}
       />
 
-      {/* Main Content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <TopBar setMobileOpen={setMobileOpen} />
+        <Topbar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 min-h-full">
+          <div className="min-h-full p-4 md:p-6">
             <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/importar-datos" element={<ImportarDatos />} />
               <Route path="/configuracion" element={<Configuracion />} />
