@@ -1,72 +1,89 @@
 import { useState, useCallback } from 'react'
 
-const API_BASE    = 'https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api'
+const API_BASE = 'https://www.urusverify.com/v1/client/a84bc421-28d0-4551-81af-7aec26e13526/api'
 const FACTORY_KEY = 'factory2026'
 
-/**
- * Realiza una petición autenticada a la API base.
- * @param {string} endpoint  - Ruta relativa, ej: '/users'
- * @param {RequestInit} options - Opciones fetch adicionales
- * @returns {Promise<any>}   - JSON de respuesta
- */
-export async function fetchApi(endpoint = '', options = {}) {
-  const url = `${API_BASE}${endpoint}`
+const buildHeaders = (customHeaders = {}) => ({
+  'Content-Type': 'application/json',
+  'x-factory-key': FACTORY_KEY,
+  ...customHeaders
+})
 
-  const headers = {
-    'Content-Type':  'application/json',
-    'x-factory-key': FACTORY_KEY,
-    ...options.headers
-  }
+export const fetchApi = async (endpoint, options = {}) => {
+  const { headers: customHeaders, body, ...restOptions } = options
 
   const config = {
-    ...options,
-    headers
+    ...restOptions,
+    headers: buildHeaders(customHeaders),
+    ...(body && { body: typeof body === 'string' ? body : JSON.stringify(body) })
   }
+
+  const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
 
   const response = await fetch(url, config)
 
   if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(
-      `API Error ${response.status} – ${response.statusText}: ${errorBody}`
-    )
+    const errorData = await response.json().catch(() => ({ message: response.statusText }))
+    const error = new Error(errorData.message || `HTTP error ${response.status}`)
+    error.status = response.status
+    error.data = errorData
+    throw error
   }
 
-  const contentType = response.headers.get('content-type') ?? ''
-  return contentType.includes('application/json')
-    ? response.json()
-    : response.text()
+  const contentType = response.headers.get('content-type')
+  if (contentType && contentType.includes('application/json')) {
+    return response.json()
+  }
+
+  return response.text()
 }
 
-/**
- * Hook React para consumir la API con estado de carga y error.
- * @returns {{ data, loading, error, request }}
- *
- * Uso:
- *   const { data, loading, error, request } = useApi()
- *   useEffect(() => { request('/endpoint') }, [])
- */
-export function useApi() {
-  const [data,    setData]    = useState(null)
+const useApi = () => {
   const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState(null)
+  const [error, setError] = useState(null)
 
-  const request = useCallback(async (endpoint = '', options = {}) => {
+  const request = useCallback(async (endpoint, options = {}) => {
     setLoading(true)
     setError(null)
-    setData(null)
-
     try {
-      const result = await fetchApi(endpoint, options)
-      setData(result)
-      return result
+      const data = await fetchApi(endpoint, options)
+      return { data, error: null }
     } catch (err) {
-      setError(err.message ?? 'Error desconocido')
-      throw err
+      const errorInfo = {
+        message: err.message,
+        status: err.status || null,
+        data: err.data || null
+      }
+      setError(errorInfo)
+      return { data: null, error: errorInfo }
     } finally {
       setLoading(false)
     }
   }, [])
 
-  return { data, loading, error, request }
+  const get = useCallback((endpoint, options = {}) =>
+    request(endpoint, { ...options, method: 'GET' })
+  , [request])
+
+  const post = useCallback((endpoint, body, options = {}) =>
+    request(endpoint, { ...options, method: 'POST', body })
+  , [request])
+
+  const put = useCallback((endpoint, body, options = {}) =>
+    request(endpoint, { ...options, method: 'PUT', body })
+  , [request])
+
+  const patch = useCallback((endpoint, body, options = {}) =>
+    request(endpoint, { ...options, method: 'PATCH', body })
+  , [request])
+
+  const del = useCallback((endpoint, options = {}) =>
+    request(endpoint, { ...options, method: 'DELETE' })
+  , [request])
+
+  const clearError = useCallback(() => setError(null), [])
+
+  return { loading, error, get, post, put, patch, del, request, clearError }
 }
+
+export default useApi
